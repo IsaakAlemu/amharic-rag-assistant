@@ -1,0 +1,36 @@
+# Environment and secrets
+.env
+.env.local
+.streamlit/secrets.toml
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Vector store (optional: commit chroma_db/ for faster deploy — uncomment to exclude)
+chroma_db/
+chroma_db_train/
+
+# Evaluation artifacts
+eval_checkpoint.json
+results/*
+!results/eval_summary.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+
+# Archive
+archive/

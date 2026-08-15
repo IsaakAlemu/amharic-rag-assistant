@@ -1,0 +1,190 @@
+[
+  {
+    "id": "direct_follow_up_01",
+    "category": "direct_follow_up",
+    "turns": [
+      {
+        "user": "የታክስ ገቢ ከ2010-2012 በመቶኛ የምን ያህል መጠን እድገት አሳየ?",
+        "gold_document_id": "451667",
+        "ground_truth": "36",
+        "expects_refusal": false
+      },
+      {
+        "user": "በ2012 ምን ያህል ሆነ?",
+        "gold_document_id": "451667",
+        "ground_truth": "311",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["2012", "ታክስ", "ገቢ"]
+      }
+    ]
+  },
+  {
+    "id": "pronoun_reference_01",
+    "category": "pronoun_reference",
+    "turns": [
+      {
+        "user": "ለተባበሩት መንግሥታት ድርጅት የደቡብ ሱዳን ሰላም ማስከበር ማን ተሾመ?",
+        "gold_document_id": "451668",
+        "ground_truth": "መአሾ",
+        "expects_refusal": false
+      },
+      {
+        "user": "እሱ ከዚህ በፊት የት ሠርተዋል?",
+        "gold_document_id": "451668",
+        "ground_truth": "ላይቤሪያ",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["መአሾ"]
+      }
+    ]
+  },
+  {
+    "id": "requires_previous_context_01",
+    "category": "requires_previous_context",
+    "turns": [
+      {
+        "user": "67ኛው ግጥም በጃዝ የት ነው የሚካሄደው?",
+        "gold_document_id": "451666",
+        "ground_truth": "ራስ",
+        "expects_refusal": false
+      },
+      {
+        "user": "ዲስኩር የሚያቀርቡት ማናቸው?",
+        "gold_document_id": "451666",
+        "ground_truth": "አበባው",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["67", "ግጥም"]
+      }
+    ]
+  },
+  {
+    "id": "topic_change_01",
+    "category": "topic_change",
+    "turns": [
+      {
+        "user": "በቶኪዮ ኦሎምፒክ ኢትዮጵያ በወርልድ ቴኳንዶ ስንተኛ ደረጃ አገኘች?",
+        "gold_document_id": "451669",
+        "ground_truth": "7",
+        "expects_refusal": false
+      },
+      {
+        "user": "የታክስ ገቢ ከ2010-2012 በመቶኛ የምን ያህል መጠን እድገት አሳየ?",
+        "gold_document_id": "451667",
+        "ground_truth": "36",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["ታክስ", "2010"]
+      }
+    ]
+  },
+  {
+    "id": "ambiguous_reference_01",
+    "category": "ambiguous_reference",
+    "turns": [
+      {
+        "user": "የደቡብ ክልል የ2012 በጀት አመት ስንት ብር አፀደቀ?",
+        "gold_document_id": "451672",
+        "ground_truth": "40",
+        "expects_refusal": false
+      },
+      {
+        "user": "ያ በቢሊዮን ነው?",
+        "gold_document_id": "451672",
+        "ground_truth": "40",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["2012", "ደቡብ"]
+      }
+    ]
+  },
+  {
+    "id": "out_of_scope_follow_up_01",
+    "category": "out_of_scope_follow_up",
+    "turns": [
+      {
+        "user": "አትሌት ኃይሌ ገብረሥላሴ ለኢትዮጵያ የልብ ሕሙማን ስንት ብር ለመለገስ ቃል ገባ?",
+        "gold_document_id": "451670",
+        "ground_truth": "ሚሊዮን",
+        "expects_refusal": false
+      },
+      {
+        "user": "የኢትዮጵያ ጠቅላይ ሚኒስትር ማን ናቸው?",
+        "gold_document_id": "",
+        "ground_truth": "",
+        "expects_refusal": true
+      }
+    ]
+  },
+  {
+    "id": "multi_document_follow_up_01",
+    "category": "multi_document_follow_up",
+    "turns": [
+      {
+        "user": "በቶኪዮ ኦሎምፒክ በወርልድ ቴኳንዶ በ58 ኪ.ግ ኢትዮጵያን ወክሎ የተሳተፈው አትሌት ማን ነው?",
+        "gold_document_id": "451669",
+        "ground_truth": "",
+        "expects_refusal": false
+      },
+      {
+        "user": "በዚያው ውድድር ኢትዮጵያ ስንተኛ ደረጃ አገኘች?",
+        "gold_document_id": "451669",
+        "ground_truth": "7",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["ቶኪዮ", "58"]
+      }
+    ]
+  },
+  {
+    "id": "amharic_follow_up_01",
+    "category": "amharic",
+    "turns": [
+      {
+        "user": "የአገራዊ የጤና ደህንነት ትግበራ እቅዱ ከመቼ ጀምሮ ተዘጋጀ?",
+        "gold_document_id": "451671",
+        "ground_truth": "2009",
+        "expects_refusal": false
+      },
+      {
+        "user": "ዕቅዱ እስከመቼ ይቀጥላል?",
+        "gold_document_id": "451671",
+        "ground_truth": "",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["ጤና", "ደህንነት"]
+      }
+    ]
+  },
+  {
+    "id": "direct_follow_up_02",
+    "category": "direct_follow_up",
+    "turns": [
+      {
+        "user": "የገቢዎች ሚኒስቴር ባለፉት ሰባት ወራት ምን ያህል ገንዘብ ሰበሰበ?",
+        "gold_document_id": "451674",
+        "ground_truth": "",
+        "expects_refusal": false
+      },
+      {
+        "user": "የሚኒስቴሩ ስም ማን ነው?",
+        "gold_document_id": "451674",
+        "ground_truth": "ላቀ",
+        "expects_refusal": false,
+        "rewrite_should_contain": ["ገቢ"]
+      }
+    ]
+  },
+  {
+    "id": "out_of_scope_follow_up_02",
+    "category": "out_of_scope_follow_up",
+    "turns": [
+      {
+        "user": "67ኛው ግጥም በጃዝ የት ነው የሚካሄደው?",
+        "gold_document_id": "451666",
+        "ground_truth": "ራስ",
+        "expects_refusal": false
+      },
+      {
+        "user": "ኢየሱስ ጌታ ነው?",
+        "gold_document_id": "",
+        "ground_truth": "",
+        "expects_refusal": true
+      }
+    ]
+  }
+]

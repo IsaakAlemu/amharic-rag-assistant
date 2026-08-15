@@ -1,0 +1,158 @@
+[
+  {
+    "id": "easy_01",
+    "category": "easy",
+    "question": "የታክስ ገቢ ከ2010-2012 በመቶኛ የምን ያህል መጠን እድገት አሳየ?",
+    "ground_truth": "የ36 በመቶ",
+    "document_id": "451667",
+    "expects_refusal": false
+  },
+  {
+    "id": "easy_02",
+    "category": "easy",
+    "question": "67ኛው ግጥም በጃዝ የት ነው የሚካሄደው?",
+    "ground_truth": "በራስ ሆቴል",
+    "document_id": "451666",
+    "expects_refusal": false
+  },
+  {
+    "id": "easy_03",
+    "category": "easy",
+    "question": "በቶኪዮ ኦሎምፒክ ኢትዮጵያ በወርልድ ቴኳንዶ ስንተኛ ደረጃ አገኘች?",
+    "ground_truth": "7ኛ",
+    "document_id": "451664",
+    "expects_refusal": false
+  },
+  {
+    "id": "hard_01",
+    "category": "hard",
+    "question": "ብርጋዴር ጄነራል መአሾ ስዩም ከዚህ በፊት የት ሠርተዋል?",
+    "ground_truth": "በተመድ የላይቤሪያ እንዲሁም ዳርፉር ሰላም አስከባሪ ኃይል ውስጥ",
+    "document_id": "451668",
+    "expects_refusal": false
+  },
+  {
+    "id": "hard_02",
+    "category": "hard",
+    "question": "የገቢዎች ሚኒስቴር አቶ ላቀ አያሌው ለመሰብሰብ ከታቀደው  ግብር በመቶኛ ምን ያህል እንደተሰበሰበ ገለጹ?",
+    "ground_truth": "",
+    "document_id": "451661",
+    "expects_refusal": false
+  },
+  {
+    "id": "hard_03",
+    "category": "hard",
+    "question": "በ67ኛው ግጥም በጃዝ ምሽት ላይ አርቲስት ሽመልስ አበራና እታፈራሁ መብራቱ ምን ያቀርባሉ ተብሎ ይጠበቃል?",
+    "ground_truth": "አጭር ተውኔት",
+    "document_id": "451666",
+    "expects_refusal": false
+  },
+  {
+    "id": "synthesis_01",
+    "category": "synthesis",
+    "question": "የኢኖቬሽን እና ቴክኖሎጂ ሚኒስቴር ከየትኛው ተቋም ጋር ስምምነት ተፈራረመ እና ማን ማን ናቸው የፈረሙት?",
+    "ground_truth": "",
+    "document_id": "451663",
+    "expects_refusal": false,
+    "notes": "Requires institution name and signatories from same paragraph."
+  },
+  {
+    "id": "synthesis_02",
+    "category": "synthesis",
+    "question": "አገራዊ የጤና ደህንነት ትግበራ እቅድ እስከመቼ ይቆያል እና ምን ያህል ገንዘብ ያስፈልጋል?",
+    "ground_truth": "",
+    "document_id": "451665",
+    "expects_refusal": false,
+    "notes": "Requires combining timeline and budget figures."
+  },
+  {
+    "id": "synthesis_03",
+    "category": "synthesis",
+    "question": "በ2010 የነበረው የታክስ ገቢ በ2012 ምን ያህል ሆነ?",
+    "ground_truth": "311 ቢሊየን",
+    "document_id": "451667",
+    "expects_refusal": false,
+    "notes": "Needs mapping paraphrased years to explicit amounts in context."
+  },
+  {
+    "id": "multi_doc_01",
+    "category": "multiple_relevant_docs",
+    "question": "ለተባበሩት መንግሥታት ድርጅት የደቡብ ሱዳን ሰላም ማስከበር ማን ተሾመ?",
+    "ground_truth": "ብርጋዴር ጄነራል መአሾ ሀጎስ ስዩም",
+    "document_id": "451668",
+    "expects_refusal": false,
+    "notes": "Top-3 may include related but wrong military/diplomatic paragraphs."
+  },
+  {
+    "id": "multi_doc_02",
+    "category": "multiple_relevant_docs",
+    "question": "የለሚ ናሽናል ፋብሪካ ግንባታ የምን እጥረትን ሊቀርፍ ይችላል?",
+    "ground_truth": "",
+    "document_id": "451662",
+    "expects_refusal": false
+  },
+  {
+    "id": "multi_doc_03",
+    "category": "multiple_relevant_docs",
+    "question": "የሆሊውዱ የፊልም ኩባንያ ዋርነር ብሮስ በሰው ሰራሽ መሳሪያ (አርቴፊሻል ኢንተሌጀንስ) ለማስገመት ያሰበው ምንን ነው?",
+    "ground_truth": "",
+    "document_id": "451660",
+    "expects_refusal": false
+  },
+  {
+    "id": "amharic_01",
+    "category": "amharic",
+    "question": "የደቡብ ክልል ምክር ቤት ለ2012 በጀት ዓመት ስንት ብር አፅድቋል?",
+    "ground_truth": "40 ቢሊዮን 56 ሚሊዮን 938 ሺህ",
+    "document_id": "451658",
+    "expects_refusal": false
+  },
+  {
+    "id": "amharic_02",
+    "category": "amharic",
+    "question": "አትሌት ኃይሌ ገብረሥላሴ ለኢትዮጵያ የልብ ሕሙማን ሕፃናት መርጃ ማዕከል ስንት ብር ለመለገስ ቃል ገብቷል?",
+    "ground_truth": "አንድ ሚሊዮን ብር",
+    "document_id": "451657",
+    "expects_refusal": false
+  },
+  {
+    "id": "amharic_03",
+    "category": "amharic",
+    "question": "የአገራዊ የጤና ደህንነት ትግበራ እቅዱ ከመቼ ጀምሮ ተዘጋጀ?",
+    "ground_truth": "ከ2009 ዓ.ም ህዳር ወር",
+    "document_id": "451665",
+    "expects_refusal": false
+  },
+  {
+    "id": "out_of_scope_01",
+    "category": "out_of_scope",
+    "question": "የኢትዮጵያ ጠቅላይ ሚኒስትር ማን ናቸው?",
+    "ground_truth": "",
+    "document_id": "",
+    "expects_refusal": true
+  },
+  {
+    "id": "out_of_scope_02",
+    "category": "out_of_scope",
+    "question": "ኢየሱስ ጌታ ነው?",
+    "ground_truth": "",
+    "document_id": "",
+    "expects_refusal": true
+  },
+  {
+    "id": "out_of_scope_03",
+    "category": "out_of_scope",
+    "question": "What is the capital of France?",
+    "ground_truth": "",
+    "document_id": "",
+    "expects_refusal": true
+  },
+  {
+    "id": "out_of_scope_04",
+    "category": "out_of_scope",
+    "question": "የ2025 የኢትዮጵያ ብሔራዊ ባጀት ስንት ነው?",
+    "ground_truth": "",
+    "document_id": "",
+    "expects_refusal": true
+  }
+]
