@@ -4,22 +4,6 @@ An end-to-end **conversational Retrieval-Augmented Generation (RAG)** system for
 
 ---
 
-## Demo
-
-**Empty state — chat-first interface with sample questions**
-
-![Amharic RAG empty state](docs/images/empty-state.png)
-
-**A grounded answer with inline citations and sources**
-
-![Amharic RAG grounded answer with citations](docs/images/qa-example.png)
-
-**Grounded refusal on an out-of-scope question**
-
-![Amharic RAG grounded refusal](docs/images/refusal-example.png)
-
----
-
 ## 1. Project Overview
 
 The system lets users ask questions in Amharic through a Streamlit chat interface. Each turn:
