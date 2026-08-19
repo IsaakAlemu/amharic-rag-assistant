@@ -6,40 +6,39 @@ from src.retriever import RetrievedDocument
 
 REFUSAL_PHRASE = "I don't know based on the provided documents."
 
-SYSTEM_RULES = """You are a strict question-answering assistant. Follow these rules exactly:
+SYSTEM_RULES = """You are an articulate, helpful, and natural Amharic conversational assistant. Follow these rules carefully:
 
-1. Answer ONLY using facts explicitly stated in the Context below.
-2. Before answering, check: does the Context actually contain information that directly answers the Question? If the Context is about a different topic, person, or time period than what's being asked, it does NOT count as an answer.
-3. If the Context does not directly and clearly answer the Question, you MUST respond with exactly: "I don't know based on the provided documents."
-4. Do NOT guess, infer, or use any name/fact/number from the Context just because it appears there — it must specifically answer the Question asked.
-5. Do NOT use any outside knowledge, even if you know the real-world answer.
-6. When you use a fact from the Context, cite the source number inline like [1] or [2]."""
+1. Grounding: Answer strictly using facts supported by the Retrieved Documents below.
+2. Tone & Fluency: Express answers in natural, fluent, and clear Amharic. Do not sound stiff or mechanical.
+3. Citations: Whenever you state a fact from the documents, place the source rank inline, e.g. [1] or [2].
+4. Insufficient Context: If the retrieved documents do not contain enough facts to answer the question, politely decline by stating exactly: "I don't know based on the provided documents." or "ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።"
+5. Do NOT speculate, hallucinate, or bring in ungrounded outside facts."""
 
-SYSTEM_RULES_COMPRESSED = """You are a strict Amharic QA assistant. Rules:
-1. Answer ONLY from the Context below.
-2. If the Context does not directly answer the Question, respond exactly: "I don't know based on the provided documents."
-3. Do NOT use outside knowledge or guess.
+SYSTEM_RULES_COMPRESSED = """You are a strict, fluent Amharic QA assistant. Rules:
+1. Answer ONLY using facts from the Context below in natural Amharic.
+2. If Context lacks the answer, respond: "ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።"
+3. Do NOT use outside knowledge or hallucinate.
 4. Cite sources inline as [1], [2], etc."""
 
-CONVERSATIONAL_RULES = """You are a strict Amharic question-answering assistant in a multi-turn conversation.
+CONVERSATIONAL_RULES = """You are an articulate, fluent Amharic conversational assistant in a multi-turn dialogue.
 
 Rules:
-1. Answer ONLY using facts explicitly stated in the Retrieved Documents below.
-2. The Conversation History helps you understand the latest question, but it is NOT a source of facts.
-3. Do NOT treat previous assistant messages as factual evidence.
-4. Before answering, check whether the Retrieved Documents directly answer the Latest Question.
-5. If the Retrieved Documents do not directly and clearly answer the Latest Question, respond exactly: "I don't know based on the provided documents."
-6. Do NOT guess, infer, or use outside knowledge.
-7. Cite retrieved documents inline as [1], [2], etc."""
+1. Grounding: Answer strictly using facts supported by the Retrieved Documents below.
+2. Conversation Flow: Use the Conversation History to understand pronouns, context, and follow-ups naturally.
+3. Tone: Speak in clear, warm, and natural Amharic. Avoid sounding overly robotic.
+4. Citations: Cite the retrieved documents inline as [1], [2], etc. for every factual statement.
+5. Grounded Refusal: If the retrieved documents do not contain the answer to the latest question, state: "ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።" (or "I don't know based on the provided documents.").
+6. Do NOT fabricate facts or use ungrounded external assumptions."""
 
 
 def _format_retrieved_documents(retrieved_docs: list[RetrievedDocument]) -> str:
     if not retrieved_docs:
-        return "(No relevant documents were retrieved.)\n"
+        return "<retrieved_evidence>\n(No relevant documents were retrieved.)\n</retrieved_evidence>\n"
 
-    blocks: list[str] = []
+    blocks: list[str] = ["<retrieved_evidence>"]
     for doc in retrieved_docs:
-        blocks.append(f"[{doc['rank']}] (Document {doc['document_id']})\n{doc['text']}\n")
+        blocks.append(f"<document rank=\"{doc['rank']}\" id=\"{doc['document_id']}\">\n{doc['text']}\n</document>")
+    blocks.append("</retrieved_evidence>\n")
     return "\n".join(blocks)
 
 
@@ -49,9 +48,9 @@ def build_prompt(
     *,
     system_rules: str = SYSTEM_RULES,
 ) -> str:
-    prompt = system_rules + "\n\nRetrieved Documents:\n\n"
+    prompt = system_rules + "\n\n"
     prompt += _format_retrieved_documents(retrieved_docs)
-    prompt += f"\nQuestion:\n{query}\n\nAnswer:"
+    prompt += f"\n<user_question>\n{query}\n</user_question>\n\nAnswer:"
     return prompt
 
 
@@ -63,11 +62,9 @@ def build_conversational_prompt(
     system_rules: str = CONVERSATIONAL_RULES,
 ) -> str:
     prompt = system_rules + "\n\n"
-    prompt += "Conversation History (for understanding only — NOT a source of facts):\n"
-    prompt += conversation_history + "\n\n"
-    prompt += "Retrieved Documents (your ONLY source of facts):\n\n"
+    prompt += f"<conversation_history>\n{conversation_history}\n</conversation_history>\n\n"
     prompt += _format_retrieved_documents(retrieved_docs)
-    prompt += f"\nLatest Question:\n{latest_question}\n\nAnswer:"
+    prompt += f"\n<user_question>\n{latest_question}\n</user_question>\n\nAnswer:"
     return prompt
 
 
@@ -78,10 +75,10 @@ def build_prompt_parts(
     system_rules: str = SYSTEM_RULES,
 ) -> dict[str, str]:
     context = _format_retrieved_documents(retrieved_docs)
-    suffix = f"Question:\n{query}\n\nAnswer:"
+    suffix = f"\n<user_question>\n{query}\n</user_question>\n\nAnswer:"
     return {
         "system_rules": system_rules,
         "context": context,
         "question_suffix": suffix,
-        "full": system_rules + "\n\nRetrieved Documents:\n\n" + context + suffix,
+        "full": system_rules + "\n\n" + context + suffix,
     }

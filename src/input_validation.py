@@ -1,16 +1,11 @@
-"""Load and validate user queries."""
+"""Load and validate user queries with security guardrails."""
 
 from __future__ import annotations
 
-from src.errors import ValidationError
+from src.security import validate_and_sanitize_query
 
 
-def validate_query(query: str, *, max_chars: int) -> str:
-    cleaned = query.strip()
-    if not cleaned:
-        raise ValidationError("Please enter a question.")
-    if len(cleaned) > max_chars:
-        raise ValidationError(
-            f"Question is too long ({len(cleaned)} chars). Maximum is {max_chars}."
-        )
-    return cleaned
+def validate_query(query: str, *, max_chars: int = 1000) -> str:
+    """Validate query length, strip malicious control chars, and guard against prompt injection."""
+    return validate_and_sanitize_query(query, max_chars=max_chars)
+
