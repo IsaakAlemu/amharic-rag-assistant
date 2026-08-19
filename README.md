@@ -86,31 +86,35 @@ User Question (Amharic)
 
 ## 4. Evaluation and Empirical Results
 
-All reported metrics are measured on completed, reproducible runs from the project benchmark artifacts (`results/`):
+All reported metrics are measured on completed, reproducible runs from the project benchmark artifacts (`results/`) using 329 held-out test questions across approximately 286 passage-level AmQA documents (`split_seed=42`, `holdout_ratio=0.2`).
 
-### 4.1 Single-Turn Retrieval Baseline (329-Question Holdout Set)
+### 4.1 Current Retrieval Performance
 
-Evaluated on 329 held-out test questions across the ~286 passage AmQA knowledge base:
+The current production retriever combines multilingual dense semantic retrieval (`intfloat/multilingual-e5-small`), BM25 lexical retrieval, and Reciprocal Rank Fusion (RRF, $k=60$) executed through `src/pipeline.py`:
 
-| Metric | Score | Description |
-|---|---|---|
-| **Hit@1** | **72.95%** | Gold document retrieved at rank 1 (production `top_k=3` setting) |
-| **Hit@3** | **84.19%** | Gold document retrieved in top 3 (production `top_k=3` setting) |
-| **Hit@5** | **87.23%** | Gold document retrieved in top 5 (top-k sweep) |
-| **Hit@10** | **89.36%** | Gold document retrieved in top 10 (top-k sweep) |
-| **MRR** | **0.781** | Mean Reciprocal Rank |
+| Metric | Current Production Hybrid |
+|---|---:|
+| **Hit@1** | **77.81%** |
+| **Hit@3** | **90.88%** |
+| **Hit@5** | **94.83%** |
+| **Hit@10** | **98.48%** |
+| **MRR** | **0.8535** |
 
-### 4.2 Dense vs. Hybrid Retrieval (BM25 + RRF)
+- **Hit@3 reaches 90.88%**, meaning the gold document was present in the top-3 retrieved results for 90.88% of the evaluated questions.
+- **Hit@10 reaches 98.48%**, indicating that the correct source is present in the retrieved candidate set for nearly all evaluated questions.
+- **MRR (Mean Reciprocal Rank) is 0.8535** across the candidate ranking.
+- **Engineering Improvement:** Compared with the original dense-only baseline on the same 329-question holdout, the hybrid retrieval system improved Hit@1 by 4.86 percentage points (from 72.95% to 77.81%) and Hit@3 by 6.69 percentage points (from 84.19% to 90.88%).
 
-Hybrid retrieval resolves edge cases where dense embeddings miss exact Ethiopian acronyms or rare named entities.
+### 4.2 Illustrative Exact-Entity Retrieval Case
 
-**Example Benchmark Query:** `"የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?"` *(Gold Document: `451675`)*
+Hybrid retrieval resolves edge cases where dense semantic embeddings under-rank exact Ethiopian acronyms or rare named entities.
 
-| Retrieval Method | Rank 1 Result | Rank of Gold Document (`451675`) |
-|---|---|---|
-| **Pure Dense (E5 + Chroma)** | `Doc 451575` | **Rank 2** (Missed at Top-1) |
-| **Pure BM25 Lexical** | `Doc 451675` | **Rank 1** (Exact acronym match) |
-| **Hybrid Fusion (Dense + BM25 via RRF)** | `Doc 451675` | **Rank 1** (**Promoted to Top-1**) |
+**Query:** `"የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?"`  
+**Gold Document:** `451675`
+
+- **Dense Baseline (E5 + Chroma):** Ranked at **Rank 2** (missed in top-1 slot).
+- **BM25 Lexical Search:** Ranked at **Rank 1** (exact acronym match).
+- **Current Production Hybrid:** Ranked at **Rank 1** (**Promoted to Top-1**).
 
 ### 4.3 Security & Guardrail Verification
 
@@ -293,7 +297,7 @@ python scripts/ingest_corpus.py --file data/raw/train_data.json --collection amq
 ## 10. Limitations
 
 1. **Corpus Scope:** Grounded knowledge is currently bounded to ~286 AmQA Wikipedia articles; out-of-corpus queries will be intentionally refused.
-2. **Retrieval Precision:** Single-turn dense retrieval Hit@1 is 72.95% on the holdout benchmark — dense search occasionally ranks a non-gold passage at rank 1.
+2. **Retrieval Precision:** Production hybrid retrieval Hit@1 is 77.81% on the holdout benchmark — while 90.88% of queries include the gold passage in Top-3, roughly 22% of queries rank another passage at rank 1.
 3. **Citation Scope:** Inline citations validate mapping to retrieved passage ranks (`[1]`, `[2]`), but do not verify semantic factuality beyond what prompting and retrieval restrict.
 
 ---
