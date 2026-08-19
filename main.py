@@ -10,7 +10,13 @@ def main() -> None:
     settings = get_settings()
     setup_logging(settings.log_level)
 
-    client = Groq(api_key=settings.groq_api_key)
+    if settings.llm_provider == "gemini":
+        from google import genai
+        client = genai.Client(api_key=settings.gemini_api_key)
+    else:
+        from groq import Groq
+        client = Groq(api_key=settings.groq_api_key)
+
     embed_model = SentenceTransformer(settings.embed_model)
     collection = load_vector_collection(settings, embed_model)
 

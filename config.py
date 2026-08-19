@@ -44,7 +44,8 @@ def _get_optional_int(name: str) -> int | None:
 
 @dataclass(frozen=True)
 class Settings:
-    groq_api_key: str
+    llm_provider: str
+    groq_api_key: str | None
     gemini_api_key: str | None
     llm_model: str
     embed_model: str
@@ -68,23 +69,30 @@ class Settings:
     max_history_tokens: int
 
 
-def get_settings(*, require_groq: bool = True, require_gemini: bool = False) -> Settings:
-    groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
+def get_settings(*, require_groq: bool = False, require_gemini: bool = False) -> Settings:
+    llm_provider = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+    groq_api_key = os.getenv("GROQ_API_KEY", "").strip() or None
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip() or None
 
-    if require_groq and not groq_api_key:
-        raise ConfigError(
-            "GROQ_API_KEY is not set. Copy .env.example to .env and add your key."
-        )
-    if require_gemini and not gemini_api_key:
-        raise ConfigError(
-            "GEMINI_API_KEY is not set. Required for evaluation scripts."
-        )
+    if llm_provider == "gemini" or require_gemini:
+        if not gemini_api_key:
+            raise ConfigError(
+                "GEMINI_API_KEY is not set. Add your Gemini key to .env or set LLM_PROVIDER=groq."
+            )
+    if llm_provider == "groq" or require_groq:
+        if not groq_api_key:
+            raise ConfigError(
+                "GROQ_API_KEY is not set. Add your Groq key to .env or set LLM_PROVIDER=gemini."
+            )
+
+    default_model = "gemini-3.6-flash" if llm_provider == "gemini" else "llama-3.3-70b-versatile"
+    default_rewrite_model = "gemini-3.6-flash" if llm_provider == "gemini" else "llama-3.1-8b-instant"
 
     return Settings(
+        llm_provider=llm_provider,
         groq_api_key=groq_api_key,
         gemini_api_key=gemini_api_key,
-        llm_model=os.getenv("LLM_MODEL", "llama-3.3-70b-versatile"),
+        llm_model=os.getenv("LLM_MODEL", default_model),
         embed_model=os.getenv("EMBED_MODEL", "intfloat/multilingual-e5-small"),
         top_k=_get_int("TOP_K", 3),
         temperature=_get_float("TEMPERATURE", 0.1),
@@ -96,12 +104,12 @@ def get_settings(*, require_groq: bool = True, require_gemini: bool = False) -> 
         holdout_ratio=_get_float("HOLDOUT_RATIO", 0.2),
         split_seed=_get_int("SPLIT_SEED", 42),
         eval_chroma_path=os.getenv("EVAL_CHROMA_PATH", "chroma_db_train"),
-        judge_model=os.getenv("JUDGE_MODEL", "gemini-2.0-flash"),
+        judge_model=os.getenv("JUDGE_MODEL", "gemini-3.6-flash"),
         model_8b=os.getenv("LLM_MODEL_8B", "llama-3.1-8b-instant"),
         model_70b=os.getenv("LLM_MODEL_70B", "llama-3.3-70b-versatile"),
         max_prompt_tokens=_get_optional_int("MAX_PROMPT_TOKENS"),
         context_strategy=os.getenv("CONTEXT_STRATEGY", "baseline"),
-        rewrite_model=os.getenv("REWRITE_MODEL", "llama-3.1-8b-instant"),
+        rewrite_model=os.getenv("REWRITE_MODEL", default_rewrite_model),
         max_history_turns=_get_int("MAX_HISTORY_TURNS", 6),
         max_history_tokens=_get_int("MAX_HISTORY_TOKENS", 800),
     )

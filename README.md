@@ -47,7 +47,7 @@ query validation               [src/input_validation.py]
   ↓
 conversation history           [src/history_manager.py]
   ↓
-8B query rewriting             [src/query_rewriter.py]
+Query rewriting (Gemini / 8B)  [src/query_rewriter.py]
   ↓
 multilingual-e5-small          [SentenceTransformer + src/embedding_generator.py]
   ↓
@@ -55,11 +55,11 @@ Chroma top-k retrieval         [src/retriever.py]
   ↓
 conversational prompt          [src/prompt_builder.py]
   ↓
-70B generation (Groq)          [src/llm.py]
+Grounded Generation            [src/llm.py: Gemini 3.6 Flash / Groq LLaMA-70B]
   ↓
 citation parsing/validation    [src/citations.py]
   ↓
-answer + sources + observability
+answer + sources + live streaming + observability
 ```
 
 **Design rules:**

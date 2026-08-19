@@ -5,12 +5,19 @@ import streamlit as st
 from groq import Groq
 from sentence_transformers import SentenceTransformer
 
+import time
+
 from config import get_settings
 from src.errors import ConfigError
 from src.history_manager import ConversationState
-from src.llm import REFUSAL_PHRASE
+from src.llm import AMHARIC_REFUSAL_PHRASE, REFUSAL_PHRASE, generate_answer_stream, is_refusal
 from src.logging_config import setup_logging
-from src.pipeline import answer_conversation, load_vector_collection
+from src.pipeline import (
+    answer_conversation,
+    complete_conversation_turn,
+    load_vector_collection,
+    prepare_conversation_context,
+)
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
@@ -221,7 +228,11 @@ st.markdown(
 
 @st.cache_resource
 def load_pipeline():
-    client = Groq(api_key=settings.groq_api_key)
+    if settings.llm_provider == "gemini":
+        from google import genai
+        client = genai.Client(api_key=settings.gemini_api_key)
+    else:
+        client = Groq(api_key=settings.groq_api_key)
     embed_model = SentenceTransformer(settings.embed_model)
     collection = load_vector_collection(settings, embed_model)
     return client, embed_model, collection
@@ -234,6 +245,8 @@ except Exception as exc:
     st.stop()
 
 # ── Session state ────────────────────────────────────────────────────────────
+
+MAX_SESSION_TURNS = 12
 
 if "conversation" not in st.session_state:
     st.session_state.conversation = ConversationState()
@@ -249,7 +262,14 @@ if "message_metrics" not in st.session_state:
 
 with st.sidebar:
     st.markdown('<div class="am-sidebar-app-name">💬 Amharic RAG</div>', unsafe_allow_html=True)
-    st.markdown('<div class="am-sidebar-tagline">Grounded QA over AmQA Wikipedia</div>', unsafe_allow_html=True)
+    st.markdown('<div class="am-sidebar-tagline">Grounded Conversational QA · AmQA Knowledge Base</div>', unsafe_allow_html=True)
+
+    # Session turn counter and limit guard
+    user_turns = sum(1 for m in st.session_state.conversation.messages if m.role == "user")
+    turns_left = max(0, MAX_SESSION_TURNS - user_turns)
+    
+    st.caption(f"🎯 **Model Provider:** `{settings.llm_provider.upper()}` (`{settings.llm_model}`)")
+    st.caption(f"💬 **Turns Used:** `{user_turns} / {MAX_SESSION_TURNS}`")
 
     if st.button("＋ New conversation", use_container_width=True):
         st.session_state.conversation = ConversationState()
@@ -258,7 +278,7 @@ with st.sidebar:
         st.rerun()
 
     st.session_state.show_sources = st.checkbox(
-        "Show source passages",
+        "Show retrieved sources",
         value=st.session_state.show_sources,
     )
 
@@ -266,36 +286,44 @@ with st.sidebar:
 
     with st.expander("ℹ️ About This System", expanded=False):
         st.markdown(
-            """
+            f"""
 **Purpose**  
-Conversational Amharic QA over a fixed AmQA Wikipedia knowledge base.
+Grounded, conversational Amharic Question Answering over a verified AmQA Wikipedia knowledge base.
 
-**Corpus:** ~286 passage-level documents
+**Corpus Details**  
+- **Knowledge Base:** ~286 passage-level documents from AmQA.
+- **Embeddings:** `intfloat/multilingual-e5-small` dense vector representations.
+- **Storage:** ChromaDB local vector collection (`top_k={settings.top_k}`).
 
-**Pipeline**
+**Architecture Flow**
 ```
-User Question
-↓ LLaMA-3.1-8B — Query Rewrite
-↓ E5-small Embeddings + Chroma
-↓ Top-3 Retrieved Evidence
-↓ LLaMA-3.3-70B — Grounded Generation
-↓ Citation Parsing & Validation
+User Question (Amharic)
+↓
+Gemini 3.6 Flash / LLaMA-8B (Query Rewriter)
+↓
+Multilingual-E5 Dense Retrieval (ChromaDB)
+↓
+Top-3 Evidence Filtering
+↓
+Gemini 3.6 Flash / LLaMA-70B (Grounded Generator)
+↓
+Inline Citation Parsing & Fact Validation
 ```
 
-**Grounding**  
-Answers are restricted to retrieved evidence. Insufficient context triggers a grounded refusal — never a hallucinated answer.
+**Retrieval Benchmark (329-Q Holdout Set)**  
+- **Hit@1:** 72.64%  
+- **Hit@3:** 83.89%  
+- **MRR (Mean Reciprocal Rank):** 0.778  
+*(Note: Retrieval metrics reflect the dense vector search performance on the 329-question holdout benchmark across all LLM providers.)*
 
-**Retrieval (329-Q holdout)**  
-Hit@1 72.95% · Hit@3 84.19% · MRR 0.781
-
-**Limitation**  
-Fixed corpus of ~286 passages. Questions outside this scope will be refused.
+**Grounding & Anti-Hallucination**  
+Answers are strictly bounded by retrieved evidence. When knowledge is missing, the system outputs an explicit refusal rather than hallucinating facts.
             """
         )
 
     st.markdown(
         f"<div style='font-size:0.7rem;color:#9ca3af;padding-top:0.4rem;'>"
-        f"Session <code>{st.session_state.conversation.session_id[:8]}</code></div>",
+        f"Session ID: <code>{st.session_state.conversation.session_id[:8]}</code></div>",
         unsafe_allow_html=True,
     )
 
@@ -304,8 +332,8 @@ Fixed corpus of ~286 passages. Questions outside this scope will be refused.
 st.markdown(
     """
     <div class="am-header">
-        <span class="am-header-left">💬 Amharic RAG Chat</span>
-        <span class="am-header-right">Amharic · AmQA corpus · Grounded</span>
+        <span class="am-header-left">💬 Amharic RAG Assistant</span>
+        <span class="am-header-right">Amharic · AmQA Corpus · Grounded</span>
     </div>
     """,
     unsafe_allow_html=True,
@@ -327,16 +355,16 @@ for idx, message in enumerate(messages):
     with st.chat_message(message.role):
 
         # ── Message content ──
-        if message.role == "assistant" and message.content.strip() == REFUSAL_PHRASE:
+        if message.role == "assistant" and is_refusal(message.content):
             # Grounded refusal — visually intentional, not an error
             st.markdown(
                 f"""
                 <div class="am-refusal">
                     <div class="am-refusal-icon">🛡️</div>
                     <div class="am-refusal-body">
-                        <div class="am-refusal-label">Grounded Refusal</div>
-                        <div class="am-refusal-text">{message.content}</div>
-                        <div class="am-refusal-desc">The retrieved corpus did not contain sufficient evidence. The system refused rather than speculate.</div>
+                        <div class="am-refusal-label">Grounded Refusal · የተረጋገጠ እምቢታ</div>
+                        <div class="am-refusal-text">{html.escape(message.content)}</div>
+                        <div class="am-refusal-desc">የተገኘው መረጃ ለጥያቄው በቂ ማስረጃ አልያዘም። ሞዴሉ ከራሱ ከመገመት ይልቅ በማስረጃ ላይ ተመስርቶ ምላሽ ሰጥቷል።<br>(The retrieved corpus did not contain sufficient evidence. The system strictly refused to speculate.)</div>
                     </div>
                 </div>
                 """,
@@ -447,15 +475,29 @@ if not messages:
 
 # ── Chat input ────────────────────────────────────────────────────────────────
 
-user_input = st.chat_input("Ask a question in Amharic…")
+user_turns = sum(1 for m in st.session_state.conversation.messages if m.role == "user")
+if user_turns >= MAX_SESSION_TURNS:
+    st.info("💡 You have reached the conversation turn limit for this session. Please click **'＋ New conversation'** in the sidebar to start a new chat.")
+    user_input = None
+else:
+    user_input = st.chat_input("Ask a question in Amharic…")
+
 if user_input:
     prompt_to_run = user_input
 
-# ── Run pipeline ──────────────────────────────────────────────────────────────
+# ── Run pipeline (Real-time Streamed Generation) ───────────────────────────────
 
 if prompt_to_run:
-    with st.spinner("Retrieving context and generating answer…"):
-        result = answer_conversation(
+    # 1. Render immediate user message bubble in UI
+    with st.chat_message("user"):
+        st.markdown(
+            f'<div class="am-msg-text">{html.escape(prompt_to_run)}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # 2. Prepare Context (Rewriting + Dense Retrieval + Prompt Assembly)
+    with st.spinner("Retrieving context from AmQA knowledge base…"):
+        ctx, early_result = prepare_conversation_context(
             prompt_to_run,
             st.session_state.conversation,
             client=client,
@@ -464,21 +506,78 @@ if prompt_to_run:
             settings=settings,
         )
 
-    if result.error:
-        st.session_state.last_error = result.error
-    else:
-        st.session_state.last_error = None
-        # Find the index of the assistant message just added (last message)
-        asst_idx = len(st.session_state.conversation.messages) - 1
-        st.session_state.message_metrics[asst_idx] = {
-            "rewritten_query": result.rewritten_query,
-            "rewrite_s": result.timings_ms.get("rewrite", 0) / 1000,
-            "retrieve_s": result.timings_ms.get("retrieve", 0) / 1000,
-            "generate_s": result.timings_ms.get("generate", 0) / 1000,
-            "total_s": result.timings_ms.get("total", 0) / 1000,
-            "prompt_tokens": result.prompt_tokens,
-            "completion_tokens": result.completion_tokens,
-            "citations": result.citations,
-        }
+    if early_result is not None:
+        if early_result.error:
+            st.session_state.last_error = early_result.error
+        else:
+            st.session_state.last_error = None
+            asst_idx = len(st.session_state.conversation.messages) - 1
+            st.session_state.message_metrics[asst_idx] = {
+                "rewritten_query": early_result.rewritten_query,
+                "rewrite_s": early_result.timings_ms.get("rewrite", 0) / 1000,
+                "retrieve_s": early_result.timings_ms.get("retrieve", 0) / 1000,
+                "generate_s": 0.0,
+                "total_s": early_result.timings_ms.get("total", 0) / 1000,
+                "prompt_tokens": None,
+                "completion_tokens": None,
+                "citations": [],
+            }
+        st.rerun()
+
+    # 3. Streamed Generation into Assistant Message Box
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        t_gen_start = time.perf_counter()
+
+        try:
+            stream = generate_answer_stream(
+                ctx.prompt,
+                client,
+                model=settings.llm_model,
+                temperature=settings.temperature,
+            )
+            for chunk in stream:
+                full_response += chunk
+                formatted_live = render_message_html(full_response, is_assistant=True)
+                message_placeholder.markdown(
+                    f'<div class="am-msg-text">{formatted_live} ▌</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # Final render without cursor
+            formatted_final = render_message_html(full_response, is_assistant=True)
+            message_placeholder.markdown(
+                f'<div class="am-msg-text">{formatted_final}</div>',
+                unsafe_allow_html=True,
+            )
+            gen_ms = (time.perf_counter() - t_gen_start) * 1000
+
+            # 4. Finalize turn and compute citation mappings & metrics
+            result = complete_conversation_turn(
+                ctx,
+                full_response,
+                st.session_state.conversation,
+                model_name=settings.llm_model,
+                generate_ms=gen_ms,
+            )
+            st.session_state.last_error = None
+            asst_idx = len(st.session_state.conversation.messages) - 1
+            st.session_state.message_metrics[asst_idx] = {
+                "rewritten_query": result.rewritten_query,
+                "rewrite_s": result.timings_ms.get("rewrite", 0) / 1000,
+                "retrieve_s": result.timings_ms.get("retrieve", 0) / 1000,
+                "generate_s": result.timings_ms.get("generate", 0) / 1000,
+                "total_s": result.timings_ms.get("total", 0) / 1000,
+                "prompt_tokens": result.prompt_tokens,
+                "completion_tokens": result.completion_tokens,
+                "citations": result.citations,
+            }
+
+        except Exception as exc:
+            # Clean up user message on failure
+            if st.session_state.conversation.messages and st.session_state.conversation.messages[-1].role == "user":
+                st.session_state.conversation.messages.pop()
+            st.session_state.last_error = str(exc)
 
     st.rerun()

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from groq import Groq
+from typing import Any
 
 from src.errors import GenerationError
 from src.eval_utils import normalize_text
@@ -323,7 +323,7 @@ def _clean_rewrite(text: str) -> str:
 def _call_rewriter(
     prompt: str,
     *,
-    client: Groq,
+    client: Any,
     model: str,
     temperature: float,
 ) -> str:
@@ -340,7 +340,7 @@ def rewrite_query(
     user_message: str,
     history: list[ChatMessage],
     *,
-    client: Groq,
+    client: Any,
     model: str,
     temperature: float = 0.0,
 ) -> RewriteResult:

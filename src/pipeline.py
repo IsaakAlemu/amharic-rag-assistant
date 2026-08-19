@@ -6,25 +6,41 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from groq import Groq
-
 from config import Settings, train_split_path
 from src.history_manager import ConversationState, HistoryManager, format_history_for_prompt
 from src.input_validation import validate_query
 from src.citations import CitationValidation, build_citation_metadata
 from src.llm import (
+    AMHARIC_REFUSAL_PHRASE,
     REFUSAL_PHRASE,
     GenerationResult,
     extract_rate_limit_details,
     generate_answer,
+    generate_answer_stream,
+    is_refusal,
 )
 from src.logging_config import get_logger, log_event
 from src.prompt_builder import build_conversational_prompt, build_prompt
+from src.hybrid_retriever import BM25Retriever, reciprocal_rank_fusion
 from src.query_rewriter import rewrite_query
 from src.retriever import RetrievedDocument, retrieve
 from src.token_counter import TokenCounter
 
 logger = get_logger(__name__)
+
+_BM25_INDEX: BM25Retriever | None = None
+
+
+def get_bm25_index(settings: Settings) -> BM25Retriever:
+    """Lazy initialize and cache in-memory BM25 index over documents."""
+    global _BM25_INDEX
+    if _BM25_INDEX is None:
+        from src.document_loader import load_documents
+
+        docs = load_documents(settings.data_path)
+        _BM25_INDEX = BM25Retriever()
+        _BM25_INDEX.fit([{"id": d["filename"], "text": d["text"]} for d in docs])
+    return _BM25_INDEX
 
 
 @dataclass
@@ -108,7 +124,7 @@ def load_eval_collection(settings: Settings, embed_model):
 def answer_question(
     query: str,
     *,
-    client: Groq,
+    client: Any,
     embed_model,
     collection,
     settings: Settings,
@@ -205,7 +221,7 @@ def answer_conversation(
     user_message: str,
     conversation: ConversationState,
     *,
-    client: Groq,
+    client: Any,
     embed_model,
     collection,
     settings: Settings,
@@ -248,10 +264,17 @@ def answer_conversation(
     rewrite_ms = (time.perf_counter() - t_rewrite_start) * 1000
 
     t_retrieve_start = time.perf_counter()
-    sources = retrieve(
+    dense_sources = retrieve(
         rewrite.rewritten_query,
         collection,
         embed_model,
+        top_k=settings.top_k * 2,
+    )
+    bm25_index = get_bm25_index(settings)
+    lexical_sources = bm25_index.search(rewrite.rewritten_query, top_k=settings.top_k * 2)
+    sources = reciprocal_rank_fusion(
+        dense_sources,
+        lexical_sources,
         top_k=settings.top_k,
     )
     retrieve_ms = (time.perf_counter() - t_retrieve_start) * 1000
@@ -324,7 +347,7 @@ def answer_conversation(
     generate_ms = (time.perf_counter() - t_generate_start) * 1000
     total_ms = (time.perf_counter() - t_start) * 1000
 
-    refusal = REFUSAL_PHRASE in generation.text
+    refusal = is_refusal(generation.text)
     citations = build_citation_metadata(generation.text, sources)
     conversation.add_assistant(
         generation.text,
@@ -371,3 +394,152 @@ def answer_conversation(
             "total": total_ms,
         },
     )
+
+
+@dataclass
+class ConversationContext:
+    cleaned_query: str
+    prompt: str
+    sources: list[RetrievedDocument]
+    rewrite: Any
+    prompt_history: list[Any]
+    prompt_tokens_estimated: int
+    rewrite_ms: float
+    retrieve_ms: float
+    t_start: float
+
+
+def prepare_conversation_context(
+    user_message: str,
+    conversation: ConversationState,
+    *,
+    client: Any,
+    embed_model,
+    collection,
+    settings: Settings,
+) -> tuple[ConversationContext | None, ConversationPipelineResult | None]:
+    """Prepare context up to retrieval and prompt building (before generation)."""
+    t_start = time.perf_counter()
+    token_counter = TokenCounter()
+    history_manager = HistoryManager(
+        max_turns=settings.max_history_turns,
+        max_history_tokens=settings.max_history_tokens,
+    )
+
+    try:
+        cleaned_query = validate_query(user_message, max_chars=settings.max_query_chars)
+    except Exception as exc:
+        return None, ConversationPipelineResult(
+            answer="",
+            sources=[],
+            error=str(exc),
+            timings_ms={"total": (time.perf_counter() - t_start) * 1000},
+        )
+
+    conversation.add_user(cleaned_query)
+    rewrite_history = history_manager.select_for_rewrite(conversation.messages)
+    prompt_history = history_manager.select_for_prompt(conversation.messages)
+
+    t_rewrite_start = time.perf_counter()
+    rewrite = rewrite_query(
+        cleaned_query,
+        rewrite_history,
+        client=client,
+        model=settings.rewrite_model,
+        temperature=0.0,
+    )
+    rewrite_ms = (time.perf_counter() - t_rewrite_start) * 1000
+
+    t_retrieve_start = time.perf_counter()
+    dense_sources = retrieve(
+        rewrite.rewritten_query,
+        collection,
+        embed_model,
+        top_k=settings.top_k * 2,
+    )
+    bm25_index = get_bm25_index(settings)
+    lexical_sources = bm25_index.search(rewrite.rewritten_query, top_k=settings.top_k * 2)
+    sources = reciprocal_rank_fusion(
+        dense_sources,
+        lexical_sources,
+        top_k=settings.top_k,
+    )
+    retrieve_ms = (time.perf_counter() - t_retrieve_start) * 1000
+
+    if not sources:
+        total_ms = (time.perf_counter() - t_start) * 1000
+        conversation.add_assistant(REFUSAL_PHRASE)
+        return None, ConversationPipelineResult(
+            answer=REFUSAL_PHRASE,
+            sources=[],
+            refusal=True,
+            skipped_generation=True,
+            rewritten_query=rewrite.rewritten_query,
+            retrieval_query=rewrite.rewritten_query,
+            rewrite_model=rewrite.model,
+            history_turns_used=len(prompt_history),
+            timings_ms={
+                "rewrite": rewrite_ms,
+                "retrieve": retrieve_ms,
+                "total": total_ms,
+            },
+        )
+
+    history_text = format_history_for_prompt(prompt_history)
+    prompt = build_conversational_prompt(
+        cleaned_query,
+        sources,
+        history_text,
+    )
+    prompt_tokens_estimated = token_counter.count(prompt)
+
+    ctx = ConversationContext(
+        cleaned_query=cleaned_query,
+        prompt=prompt,
+        sources=sources,
+        rewrite=rewrite,
+        prompt_history=prompt_history,
+        prompt_tokens_estimated=prompt_tokens_estimated,
+        rewrite_ms=rewrite_ms,
+        retrieve_ms=retrieve_ms,
+        t_start=t_start,
+    )
+    return ctx, None
+
+
+def complete_conversation_turn(
+    ctx: ConversationContext,
+    full_answer: str,
+    conversation: ConversationState,
+    *,
+    model_name: str,
+    generate_ms: float,
+) -> ConversationPipelineResult:
+    """Validate citations and persist turn once generation (or streaming) completes."""
+    total_ms = (time.perf_counter() - ctx.t_start) * 1000
+    refusal = is_refusal(full_answer)
+    citations = build_citation_metadata(full_answer, ctx.sources)
+    conversation.add_assistant(
+        full_answer,
+        sources=[dict(source) for source in ctx.sources],
+    )
+
+    return ConversationPipelineResult(
+        answer=full_answer,
+        sources=ctx.sources,
+        refusal=refusal,
+        model=model_name,
+        rewritten_query=ctx.rewrite.rewritten_query,
+        retrieval_query=ctx.rewrite.rewritten_query,
+        rewrite_model=ctx.rewrite.model,
+        history_turns_used=len(ctx.prompt_history),
+        prompt_tokens_estimated=ctx.prompt_tokens_estimated,
+        citations=citations,
+        timings_ms={
+            "rewrite": ctx.rewrite_ms,
+            "retrieve": ctx.retrieve_ms,
+            "generate": generate_ms,
+            "total": total_ms,
+        },
+    )
+
