@@ -244,6 +244,16 @@ except Exception as exc:
     st.error(f"Failed to load the RAG pipeline: {exc}")
     st.stop()
 
+# ── Global Rate Limiter (shared across all visitor sessions) ──────────────────
+from src.rate_limiter import GlobalRateLimiter
+
+@st.cache_resource
+def get_global_rate_limiter() -> GlobalRateLimiter:
+    # 60 requests per rolling hour across all visitors to protect personal API quota
+    return GlobalRateLimiter(max_requests=60, window_seconds=3600)
+
+global_rate_limiter = get_global_rate_limiter()
+
 # ── Session state ────────────────────────────────────────────────────────────
 
 MAX_SESSION_TURNS = 12
@@ -488,6 +498,14 @@ if user_input:
 # ── Run pipeline (Real-time Streamed Generation) ───────────────────────────────
 
 if prompt_to_run:
+    # 0. Global Rate Limiter check (protect personal API key quota on hosted public demo)
+    if not global_rate_limiter.acquire():
+        st.session_state.last_error = (
+            "⚠️ Demo is at capacity right now — please try again in a little while. "
+            "(የማሳያ ሥርዓቱ በአሁኑ ወቅት የጥያቄ ገደቡ ላይ ደርሷል፤ እባክዎ ጥቂት ቆይተው እንደገና ይሞክሩ።)"
+        )
+        st.rerun()
+
     # 1. Render immediate user message bubble in UI
     with st.chat_message("user"):
         st.markdown(

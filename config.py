@@ -85,8 +85,8 @@ def get_settings(*, require_groq: bool = False, require_gemini: bool = False) ->
                 "GROQ_API_KEY is not set. Add your Groq key to .env or set LLM_PROVIDER=gemini."
             )
 
-    default_model = "gemini-3.6-flash" if llm_provider == "gemini" else "llama-3.3-70b-versatile"
-    default_rewrite_model = "gemini-3.6-flash" if llm_provider == "gemini" else "llama-3.1-8b-instant"
+    default_model = "gemini-3.6-flash" if llm_provider == "gemini" else "openai/gpt-oss-120b"
+    default_rewrite_model = "gemini-3.6-flash" if llm_provider == "gemini" else "openai/gpt-oss-20b"
 
     return Settings(
         llm_provider=llm_provider,
@@ -105,8 +105,8 @@ def get_settings(*, require_groq: bool = False, require_gemini: bool = False) ->
         split_seed=_get_int("SPLIT_SEED", 42),
         eval_chroma_path=os.getenv("EVAL_CHROMA_PATH", "chroma_db_train"),
         judge_model=os.getenv("JUDGE_MODEL", "gemini-3.6-flash"),
-        model_8b=os.getenv("LLM_MODEL_8B", "llama-3.1-8b-instant"),
-        model_70b=os.getenv("LLM_MODEL_70B", "llama-3.3-70b-versatile"),
+        model_8b=os.getenv("LLM_MODEL_8B", "openai/gpt-oss-20b"),
+        model_70b=os.getenv("LLM_MODEL_70B", "openai/gpt-oss-120b"),
         max_prompt_tokens=_get_optional_int("MAX_PROMPT_TOKENS"),
         context_strategy=os.getenv("CONTEXT_STRATEGY", "baseline"),
         rewrite_model=os.getenv("REWRITE_MODEL", default_rewrite_model),

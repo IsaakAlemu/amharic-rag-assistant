@@ -33,7 +33,7 @@ The system features **hybrid retrieval (dense vector search + lexical BM25 fused
   - Adversarial classifier detecting prompt-injection and jailbreak attempts in both English and Amharic.
   - XML delimiter isolation (`<retrieved_evidence>`, `<user_question>`) preventing context confusion.
 - **Ge'ez Sentence-Boundary Chunking:** Custom text chunker aware of Ethiopic punctuation (`።`, `፤`, `?`, `!`) with sliding character overlap.
-- **Multi-Provider LLM Support:** Configurable support for **Google Gemini** (`gemini-3.6-flash`) and **Groq** (`llama-3.3-70b-versatile` / `openai/gpt-oss-120b`).
+- **Multi-Provider LLM Support:** Configurable support for **Google Gemini** (`gemini-3.6-flash`) and **Groq** (`openai/gpt-oss-120b` / `openai/gpt-oss-20b`). *(Note: Following Groq's August 2026 deprecation of `llama-3.3-70b-versatile`, production Groq generation uses `openai/gpt-oss-120b`).*
 - **Observability & Quota Protection:** Displays per-turn execution latencies (rewrite, retrieve, generate), token metrics, valid citation mappings, and an interactive 12-turn session counter.
 - **GitHub Actions CI & Docker Configuration:** 23 unit tests executed automatically via GitHub Actions, accompanied by a production `Dockerfile`.
 
