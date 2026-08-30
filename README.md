@@ -1,6 +1,9 @@
 # Conversational Amharic RAG Assistant
 
 [![CI Pipeline](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml)
+[![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://amharic-rag-assistant.streamlit.app/)
+
+Try it live: [amharic-rag-assistant.streamlit.app](https://amharic-rag-assistant.streamlit.app/)
 
 An end-to-end **conversational Retrieval-Augmented Generation (RAG)** system tailored for the Amharic language over an AmQA-derived Wikipedia knowledge base.
 
