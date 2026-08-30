@@ -6,6 +6,16 @@ The system features **hybrid retrieval (dense vector search + lexical BM25 fused
 
 ---
 
+## Demo
+
+### Grounded Amharic QA
+![Grounded Amharic QA](docs/images/demo-main.png)
+
+### Multi-Turn Conversation
+![Multi-Turn Conversation](docs/images/demo-conversation.png)
+
+---
+
 ## 1. Key Features
 
 - **Amharic-Native QA & Real-Time Streaming:** Responds to questions in natural, fluent Amharic with live token-by-token streaming in a Streamlit web interface.
