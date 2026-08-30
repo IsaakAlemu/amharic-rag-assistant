@@ -1,5 +1,7 @@
 # Conversational Amharic RAG Assistant
 
+[![CI Pipeline](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml)
+
 An end-to-end **conversational Retrieval-Augmented Generation (RAG)** system tailored for the Amharic language over an AmQA-derived Wikipedia knowledge base.
 
 The system features **hybrid retrieval (dense vector search + lexical BM25 fused via Reciprocal Rank Fusion)**, conversational multi-turn query rewriting, **multi-layer prompt-injection defenses**, strict factual grounding with inline citations, real-time token streaming, and automated CI testing.
@@ -83,7 +85,7 @@ User Question (Amharic)
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Web UI** | Streamlit | Chat interface, streaming tokens, telemetry, typography |
+| **Web UI** | Streamlit | Chat interface, live token-by-token streaming (reduces perceived wait time), telemetry, typography |
 | **LLM Providers** | Google Gemini (`google-genai`) / Groq | Conversational rewriting and grounded generation |
 | **Embeddings** | `intfloat/multilingual-e5-small` | 384-dimensional dense multilingual vector embeddings |
 | **Vector Store** | ChromaDB | Persistent local cosine vector database |
@@ -309,11 +311,13 @@ python scripts/ingest_corpus.py --file data/raw/train_data.json --collection amq
 1. **Corpus Scope:** Grounded knowledge is currently bounded to ~286 AmQA Wikipedia articles; out-of-corpus queries will be intentionally refused.
 2. **Retrieval Precision:** Production hybrid retrieval Hit@1 is 77.81% on the holdout benchmark — while 90.88% of queries include the gold passage in Top-3, roughly 22% of queries rank another passage at rank 1.
 3. **Citation Scope:** Inline citations validate mapping to retrieved passage ranks (`[1]`, `[2]`), but do not verify semantic factuality beyond what prompting and retrieval restrict.
+4. **Generation Benchmarking:** End-to-end generation correctness has not yet been benchmarked at scale — while retrieval and prompt-injection security are rigorously measured, factual correctness of generated answers beyond citation-mapping is not yet independently scored.
 
 ---
 
-## 11. Author
+## 11. Author & License
 
 **Isaak Alemu**  
 Built independently as an AI Engineering portfolio project.
-- **GitHub:** [@IsaakAlemu](https://github.com/IsaakAlemu)
+- **GitHub:** [@IsaakAlemu](https://github.com/IsaakAlemu)  
+- **License:** [MIT License](LICENSE) (2026 Isaak Alemu)
