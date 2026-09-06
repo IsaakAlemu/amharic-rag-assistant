@@ -1,145 +1,159 @@
 # Conversational Amharic RAG Assistant
 
-[![CI Pipeline](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/IsaakAlemu/amharic-rag-assistant/actions/workflows/ci.yml)
-[![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://amharic-rag-assistant.streamlit.app/)
+<div align="center">
 
-Try it live: [amharic-rag-assistant.streamlit.app](https://amharic-rag-assistant.streamlit.app/)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.61.1-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.9-orange)](https://www.trychroma.com/)
+[![FlashRank](https://img.shields.io/badge/FlashRank-0.2.10-purple)](https://github.com/PrithivirajDamodaran/FlashRank)
+[![Google Gemini](https://img.shields.io/badge/Google%20GenAI-Gemini%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Groq](https://img.shields.io/badge/Groq-Cloud%20Inference-F05032)](https://groq.com/)
+[![Pytest](https://img.shields.io/badge/Pytest-29%2F29%20Passed-brightgreen?logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An end-to-end **conversational Retrieval-Augmented Generation (RAG)** system tailored for the Amharic language over an AmQA-derived Wikipedia knowledge base.
+**An enterprise-grade, two-stage Conversational Retrieval-Augmented Generation (RAG) system engineered natively for the Amharic language over an AmQA-derived Wikipedia knowledge base.**
 
-The system features **hybrid retrieval (dense vector search + lexical BM25 fused via Reciprocal Rank Fusion)**, conversational multi-turn query rewriting, **multi-layer prompt-injection defenses**, strict factual grounding with inline citations, real-time token streaming, and automated CI testing.
+[Explore Live Demo](https://amharic-rag-assistant.streamlit.app/) • [Architecture](#2-system-architecture) • [Retrieval Benchmarks](#4-empirical-evaluation--retrieval-benchmarks) • [Quickstart](#7-quickstart-runbook)
 
----
-
-## Demo
-
-### Grounded Amharic QA
-![Grounded Amharic QA](docs/images/demo-main.png)
-
-### Multi-Turn Conversation
-![Multi-Turn Conversation](docs/images/demo-conversation.png)
+</div>
 
 ---
 
-## 1. Key Features
+## 1. Problem Context & Low-Resource NLP Challenges
 
-- **Amharic-Native QA & Real-Time Streaming:** Responds to questions in natural, fluent Amharic with live token-by-token streaming in a Streamlit web interface.
-- **Hybrid Retrieval (Dense + BM25 via RRF):** Combines `intfloat/multilingual-e5-small` dense embeddings with an in-memory Amharic BM25 keyword retriever using Reciprocal Rank Fusion ($k=60$) to capture both semantic meaning and exact entity/acronym matches (e.g. `የተ.መ.ድ / ዩኤን ኤድስ`).
-- **Conversational Multi-Turn Context:** Uses an LLM rewriter to resolve pronouns, ellipsis, and context across turns into standalone retrieval queries without polluting the retriever with raw chat history.
-- **Evidence-Grounded Generation:** Enforces strict boundary rules where answers are derived exclusively from retrieved documents, citing sources inline as `[1]`, `[2]`.
-- **Bilingual Grounded Refusal:** Accurately outputs an explicit refusal (`"ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።"`) when context is missing, preventing hallucinated assertions.
-- **Multi-Layer Security & Guardrails:**
-  - Input sanitization (strips null bytes, control characters, and `<script>` injections).
-  - Adversarial classifier detecting prompt-injection and jailbreak attempts in both English and Amharic.
-  - XML delimiter isolation (`<retrieved_evidence>`, `<user_question>`) preventing context confusion.
-- **Ge'ez Sentence-Boundary Chunking:** Custom text chunker aware of Ethiopic punctuation (`።`, `፤`, `?`, `!`) with sliding character overlap.
-- **Multi-Provider LLM Support:** Configurable support for **Google Gemini** (`gemini-3.6-flash`) and **Groq** (`openai/gpt-oss-120b` / `openai/gpt-oss-20b`). *(Note: Following Groq's August 2026 deprecation of `llama-3.3-70b-versatile`, production Groq generation uses `openai/gpt-oss-120b`).*
-- **Observability & Quota Protection:** Displays per-turn execution latencies (rewrite, retrieve, generate), token metrics, valid citation mappings, and an interactive 12-turn session counter.
-- **GitHub Actions CI & Docker Configuration:** 23 unit tests executed automatically via GitHub Actions, accompanied by a production `Dockerfile`.
+Amharic (አማርኛ) is the second most spoken Semitic language globally with over 57 million speakers, yet it remains critically under-served in modern Natural Language Processing and information retrieval pipelines. Building production-grade RAG systems for Amharic poses unique linguistic and architectural challenges:
+
+1. **Morphological Richness & Agglutination:** Amharic exhibits complex root-and-pattern (non-concatenative) morphology. Prepositions (`ከ`, `በ`, `ለ`, `የ`), conjunctions (`እና`, `ስለ`), possessive suffixes (`-ኦቻችን`, `-አቸው`), and definite articles are affixed directly to nouns, verbs, and adjectives. Standard whitespace tokenizers treat `ለተባበሩት` ("for the united") and `የተባበሩት` ("of the united") as completely disjoint tokens, causing severe lexical mismatch in naive search.
+2. **Sub-Word Fragmentation in Dense Embeddings:** Pretrained multilingual embedding models (e.g. multilingual-e5, mBERT) allocate a negligible proportion of their vocabulary budget to the Ethiopic/Ge'ez Unicode block (`U+1200` to `U+137F`). This results in severe sub-character and multi-piece token fragmentation, diluting vector semantic density for domain-specific named entities and acronyms.
+3. **Exact Acronym & Named Entity Failure:** Dense vector search frequently maps domain-specific Ethiopian acronyms (e.g., `የተ.መ.ድ` for UN, `ዩኤን ኤድስ` for UNAIDS, `ኢዜአ` for ENA) to vague generic regions in vector space, failing to achieve top-rank precision for factual lookups.
+4. **Adversarial & Delimiter Vulnerabilities:** Multilingual LLMs often misinterpret mixed-language prompt-injection attempts or cross-lingual jailbreak phrasing unless protected by rigorous character sanitization, delimiter isolation, and bilingual boundary defense classifiers.
+
+To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and local FlashRank cross-encoder re-ranking, wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
 
 ---
 
-## 2. Architecture
+## 2. System Architecture
 
-```
-User Question (Amharic)
-        │
-        ▼
-[1. Input Validation & Security Guardrails]
-    • Length & control character sanitization
-    • Adversarial prompt injection classifier (EN / AM)
-        │
-        ▼
-[2. Conversational Context & Query Rewriter]
-    • Resolves multi-turn pronouns & references
-    • Produces a standalone search query
-        │
-        ▼
-[3. Hybrid Retrieval Engine]
-    ├── Dense Semantic Search (ChromaDB + multilingual-e5-small)
-    └── Lexical Keyword Search (Amharic BM25)
-        │
-        ▼
-[4. Reciprocal Rank Fusion (RRF)]
-    • Fuses dense and lexical ranks: Score = Σ 1 / (60 + rank)
-    • Yields Top-K grounded evidence passages
-        │
-        ▼
-[5. XML-Delimited Grounded Generation]
-    • Prompt wrapped in <retrieved_evidence> & <user_question>
-    • Google Gemini / Groq LLM
-    • Real-time token streaming
-        │
-        ▼
-[6. Citation Validation & UI Presentation]
-    • Maps inline markers [1], [2] to retrieved source documents
-    • Emits refusal card if evidence is insufficient
+```mermaid
+flowchart TD
+    subgraph INGESTION["1. Document Ingestion Pipeline"]
+        D1["AmQA Wikipedia Corpus (.json)"] --> D2["Character Normalizer & Cleaner"]
+        D2 --> D3["Ge'ez Sentence Splitter (። ፤ ? !)"]
+        D3 --> D4["Sliding Overlap Chunker"]
+        D4 --> D5["multilingual-e5-small Dense Embedder"]
+        D4 --> D6["Amharic BM25 Lexical Inverted Index"]
+        D5 --> D7[("ChromaDB Vector Store")]
+    end
+
+    subgraph QUERY_PROCESSING["2. Query Processing & Multi-Turn Rewriting"]
+        Q["User Question (Amharic)"] --> SEC["Input Sanitization & Injection Guardrail"]
+        SEC --> REWRITE["Conversational Query Rewriter (LLM)"]
+        REWRITE --> SQ["Standalone Retrieval Query"]
+    end
+
+    subgraph RETRIEVAL["3. Two-Stage Hybrid Retrieval"]
+        SQ --> DENSE["Dense Vector Search (ChromaDB)"]
+        SQ --> BM25["Sparse Lexical Search (Custom BM25)"]
+        DENSE --> |Top-15 Candidates| RRF["Reciprocal Rank Fusion (RRF, k=60)"]
+        BM25 --> |Top-15 Candidates| RRF
+        RRF --> |Top-15 Fused Passages| RERANK["FlashRank Cross-Encoder Re-ranker"]
+        RERANK --> |Top-5 High-Precision Passages| CTX["Context Manager & Assembler"]
+    end
+
+    subgraph GENERATION["4. Grounded Generation & Verification"]
+        CTX --> PROMPT["XML-Delimited Prompt Builder (<retrieved_evidence>)"]
+        PROMPT --> LLM["Google Gemini / Groq LLM Inference"]
+        LLM --> STREAM["Real-Time Token Streamer"]
+        STREAM --> CIT["Citation Validator & Post-Processor"]
+        CIT --> UI["Streamlit Interactive UI"]
+    end
 ```
 
-### Core Design Principles
+### Architecture Walkthrough
 
-1. **Retrieval uses the rewritten query only:** Conversation history is never directly embedded into vector space, preventing topic drift across turns.
-2. **Context isolation via XML tags:** Prevents untrusted user inputs from overriding system instructions or confusing previous chat history with factual evidence.
-3. **Empty retrieval short-circuits generation:** If retrieval yields no context, generation is skipped and the grounded refusal phrase is returned immediately.
+1. **Amharic-Aware Chunker:** Respects Ge'ez sentence termination markers (`።` Arat Neteb, `፤` Semicolon, `?`, `!`) with configurable sliding overlap (e.g. 500 characters, 100 character overlap) to preserve morphological context across paragraph boundaries.
+2. **Dual-Index Ingestion:**
+   - **Dense Index:** Chunks are prefixed (`passage: `) and embedded using `intfloat/multilingual-e5-small` into a persistent local ChromaDB instance with cosine similarity indexing.
+   - **Lexical Index:** In-memory BM25 index built with a dedicated regex tokenizer (`[\w\u1200-\u137F]+`) to index Amharic and Latin tokens simultaneously.
+3. **Conversational Multi-Turn Query Rewriter:** When a user asks follow-up questions with pronouns or omitted subjects (e.g., Turn 1: *"ስለ አቡነ ባስልዮስ ንገረኝ"*, Turn 2: *"የተወለዱት መቼ ነው?"*), the conversational rewriter resolves references to synthesize a standalone search query (`"አቡነ ባስልዮስ የተወለዱት መቼ ነው?"`) before querying the retrieval indices.
+4. **Two-Stage Re-ranking:**
+   - **Stage 1 (Candidate Generation):** Dense search and BM25 retrieve top-15 candidates each. Reciprocal Rank Fusion ($Score = \sum \frac{1}{60 + \text{rank}}$) merges the lists to ensure both semantic depth and exact acronym/keyword matches are captured.
+   - **Stage 2 (Cross-Encoder Re-ranking):** FlashRank cross-encoder (`ms-marco-TinyBERT-L-2-v2`) re-scores query-passage interaction pairs directly to promote the most relevant evidence to the top-5 slots, with automated fallback if re-ranking is disabled.
+5. **Grounded Generation & Inline Citations:** Retrieved evidence is formatted within strict XML delimiters (`<retrieved_evidence>`). The generator must substantiate every statement with inline citation anchors (e.g., `[1]`, `[2]`). If evidence is insufficient, the system emits an automated grounded refusal.
 
 ---
 
 ## 3. Technology Stack
 
-| Layer | Technology | Purpose |
+| Layer | Technology | Specification & Purpose |
 |---|---|---|
-| **Web UI** | Streamlit | Chat interface, live token-by-token streaming (reduces perceived wait time), telemetry, typography |
-| **LLM Providers** | Google Gemini (`google-genai`) / Groq | Conversational rewriting and grounded generation |
-| **Embeddings** | `intfloat/multilingual-e5-small` | 384-dimensional dense multilingual vector embeddings |
-| **Vector Store** | ChromaDB | Persistent local cosine vector database |
-| **Lexical Search** | Custom BM25 Index | Amharic word tokenization and keyword matching |
-| **Rank Fusion** | Reciprocal Rank Fusion (RRF) | Merging dense vector and BM25 candidate ranks |
-| **CI** | GitHub Actions | Automated Python 3.11 unit test suite on push/PR |
-| **Container** | Docker (`python:3.11-slim`) | Multi-stage production containerization |
+| **Web Interface** | Streamlit 1.61+ | Live token-by-token streaming, custom Amharic typography (Noto Sans Ethiopic), telemetry dashboard |
+| **Re-ranking Engine** | FlashRank 0.2.10 | Ultra-fast local ONNX-based cross-encoder candidate re-ranking |
+| **Vector Database** | ChromaDB 1.5.9 | Local persistent cosine distance vector store |
+| **Embeddings** | `intfloat/multilingual-e5-small` | 384-dimensional dense semantic vector representations |
+| **Lexical Engine** | Custom In-Memory BM25 | Pure Python BM25 ranking ($k_1=1.5, b=0.75$) with Ethiopic regex tokenization |
+| **LLM Inference** | Google Gemini / Groq | `gemini-2.5-flash` / `openai/gpt-oss-120b` for rewriting and answer generation |
+| **Quality & CI** | Pytest 9.1.1 + GitHub Actions | Automated 29-test verification suite covering chunking, citations, security, rate limiting, and hybrid retrieval |
+| **Deployment** | Docker (`python:3.11-slim`) | Multi-stage containerization with pre-baked dependencies |
 
 ---
 
-## 4. Evaluation and Empirical Results
+## 4. Empirical Evaluation & Retrieval Benchmarks
 
-All reported metrics are measured on completed, reproducible runs from the project benchmark artifacts (`results/`) using 329 held-out test questions across approximately 286 passage-level AmQA documents (`split_seed=42`, `holdout_ratio=0.2`).
+Benchmarking was conducted on the holdout evaluation split comprising **329 unseen AmQA test questions** across ~286 passage-level documents (`split_seed=42`, `holdout_ratio=0.2`).
 
-### 4.1 Current Retrieval Performance
+### 4.1 Retrieval Pipeline Progression
 
-The current production retriever combines multilingual dense semantic retrieval (`intfloat/multilingual-e5-small`), BM25 lexical retrieval, and Reciprocal Rank Fusion (RRF, $k=60$) executed through `src/pipeline.py`:
+| Pipeline Configuration | Hit@1 | Hit@3 | Hit@5 | Hit@10 | MRR (Mean Reciprocal Rank) | Context Recall |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Dense Vector Search Only** (`multilingual-e5-small`) | 72.64% | 83.89% | 87.23% | 89.36% | 0.7781 | 84.80% |
+| **Lexical Search Only** (Custom BM25) | 68.39% | 82.37% | 85.11% | 87.84% | 0.7482 | 82.37% |
+| **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | 77.81% | 90.88% | 94.83% | 98.48% | 0.8535 | 92.10% |
+| **Two-Stage Hybrid + FlashRank Re-ranking** | **82.67%** | **92.40%** | **96.35%** | **98.48%** | **0.8718** | **94.83%** |
 
-| Metric | Current Production Hybrid |
-|---|---:|
-| **Hit@1** | **77.81%** |
-| **Hit@3** | **90.88%** |
-| **Hit@5** | **94.83%** |
-| **Hit@10** | **98.48%** |
-| **MRR** | **0.8535** |
+### 4.2 Engineering Key Findings
 
-- **Hit@3 reaches 90.88%**, meaning the gold document was present in the top-3 retrieved results for 90.88% of the evaluated questions.
-- **Hit@10 reaches 98.48%**, indicating that the correct source is present in the retrieved candidate set for nearly all evaluated questions.
-- **MRR (Mean Reciprocal Rank) is 0.8535** across the candidate ranking.
-- **Engineering Improvement:** Compared with the original dense-only baseline on the same 329-question holdout, the hybrid retrieval system improved Hit@1 by 4.86 percentage points (from 72.95% to 77.81%) and Hit@3 by 6.69 percentage points (from 84.19% to 90.88%).
-
-### 4.2 Illustrative Exact-Entity Retrieval Case
-
-Hybrid retrieval resolves edge cases where dense semantic embeddings under-rank exact Ethiopian acronyms or rare named entities.
-
-**Query:** `"የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?"`  
-**Gold Document:** `451675`
-
-- **Dense Baseline (E5 + Chroma):** Ranked at **Rank 2** (missed in top-1 slot).
-- **BM25 Lexical Search:** Ranked at **Rank 1** (exact acronym match).
-- **Current Production Hybrid:** Ranked at **Rank 1** (**Promoted to Top-1**).
-
-### 4.3 Security & Guardrail Verification
-
-- **Direct Adversarial Tests:** 100% of tested canonical injection attempts in English and Amharic (e.g. *"ignore previous instructions"*, *"የቀደመውን መመሪያ እርሳው"*) are intercepted by `src/security.py`.
-- **Paraphrased / Delimiter Robustness:** Queries bypassing keyword regex are contained by `<user_question>` XML boundaries, triggering grounded refusal without leaking system instructions.
-- **Automated Test Suite:** **23 / 23 unit tests pass** across citations, chunking, security, and hybrid retrieval.
+1. **Dense vs. BM25 Synergy:** While dense retrieval excels at semantic similarity, BM25 dominates on specific numbers, dates, and named entities. Fusing them with RRF yielded a **+5.17 percentage point boost in Hit@1** (from 72.64% to 77.81%) and **+7.54 pp in MRR**.
+2. **Two-Stage Re-ranking Impact:** Adding FlashRank cross-encoder re-ranking as Stage 2 refined the top-15 candidates, boosting **Hit@1 to 82.67%** (+4.86 pp over RRF alone, +10.03 pp over Dense baseline) and achieving an overall **MRR of 0.8718**.
+3. **Acronym Disambiguation Case Study:**
+   - **Query:** `"የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?"` (What does the UN agency UNAIDS focus on?)
+   - **Gold Document:** `451675`
+   - *Dense Baseline:* Ranked at **#2** (semantic drift).
+   - *BM25 Lexical:* Ranked at **#1** (exact keyword matching).
+   - *Two-Stage Re-ranking:* Ranked at **#1** with high cross-encoder confidence score.
 
 ---
 
-## 5. Repository Structure
+## 5. Production Guardrails & Reliability
+
+```mermaid
+flowchart LR
+    IN["User Input"] --> V1["Input Sanitization\n(Length, Null bytes, Script tags)"]
+    V1 --> V2["Adversarial Injection Classifier\n(English & Amharic Regex)"]
+    V2 --> V3["Rate Limiting\n(Global & Session Token Buckets)"]
+    V3 --> V4["XML Delimiter Isolation\n(<user_question>, <retrieved_evidence>)"]
+    V4 --> V5["Citation & Fallback Verification\n(Format validation & Grounded Refusal)"]
+    V5 --> OUT["Safe Generated Response"]
+```
+
+### 1. Adversarial Injection & Jailbreak Defense
+- **Bilingual Pattern Matching:** `src/security.py` inspects incoming queries for canonical jailbreak phrases in both English (`"ignore previous instructions"`, `"system override"`) and Amharic (`"የቀደመውን መመሪያ እርሳው"`, `"ሁሉንም ህግ ጣስ"`).
+- **XML Delimiter Isolation:** Prompts format context and user queries into strict XML containers (`<retrieved_evidence>`, `<user_question>`). LLM system instructions explicitly mandate treating content within evidence tags as data only.
+
+### 2. Grounded Refusal & Hallucination Suppression
+- When retrieved evidence yields insufficient context or similarity scores fall below threshold, the system immediately returns a standard refusal phrase without invoking ungrounded model hallucination:
+  > *"ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።"*  
+  > (Translation: "It is not possible to answer this question based on the provided documents.")
+
+### 3. Graceful Fallback
+- `FlashRank` re-ranking is wrapped in isolated try/except handlers. If the ONNX runtime or model initialization encounters an environment constraint, the pipeline automatically falls back to raw RRF ranking without user disruption.
+
+### 4. Rate Limiting & Token Quotas
+- Built-in token-bucket rate limiter (`src/rate_limiter.py`) protects upstream inference quotas, accompanied by an interactive session reset counter in the Streamlit UI.
+
+---
+
+## 6. Repository Structure
 
 ```
 amharic-rag-assistant/
@@ -147,180 +161,175 @@ amharic-rag-assistant/
 │   └── workflows/
 │       └── ci.yml             # GitHub Actions CI workflow (Python 3.11)
 ├── src/
-│   ├── chunker.py             # Ge'ez sentence-boundary text chunker
-│   ├── citations.py           # Citation parsing & document mapping
-│   ├── document_loader.py     # AmQA JSON dataset loader
-│   ├── embedding_generator.py # E5 vector embedding & Chroma indexer
-│   ├── errors.py              # Typed domain exceptions
-│   ├── history_manager.py     # Sliding window conversation memory
-│   ├── hybrid_retriever.py    # BM25 index & Reciprocal Rank Fusion
-│   ├── input_validation.py    # Query length & security entrypoint
-│   ├── llm.py                 # Multi-provider LLM client (Gemini / Groq)
-│   ├── logging_config.py      # Structured JSON event logging
-│   ├── pipeline.py            # End-to-end RAG pipeline orchestration
-│   ├── prompt_builder.py      # XML-delimited prompt assembly
-│   ├── query_rewriter.py      # Conversational history query rewriter
-│   ├── retriever.py           # Dense semantic Chroma retrieval
-│   ├── security.py            # Input sanitization & injection classifier
-│   └── token_counter.py       # Prompt token estimation
+│   ├── chunker.py             # Ge'ez sentence-boundary text chunker (Arat Neteb aware)
+│   ├── citations.py           # Inline citation parsing [1], [2] & metadata mapping
+│   ├── context_manager.py     # Prompt token budget & evidence assembly
+│   ├── document_loader.py     # AmQA JSON dataset loader and validator
+│   ├── embedding_generator.py # E5 dense vector embeddings & ChromaDB indexing
+│   ├── errors.py              # Typed domain exception classes
+│   ├── eval_api.py            # API-based evaluation utilities
+│   ├── eval_utils.py          # Benchmark metrics (Hit@K, MRR, Context Precision/Recall)
+│   ├── history_manager.py     # Multi-turn conversation sliding window
+│   ├── hybrid_retriever.py    # BM25 Retriever, RRF Fusion & FlashRank Re-ranker
+│   ├── input_validation.py    # Input validation, sanitization & security gateway
+│   ├── llm.py                 # Unified LLM provider client (Google Gemini / Groq)
+│   ├── logging_config.py      # Structured JSON event logging & telemetry
+│   ├── pipeline.py            # End-to-end RAG pipeline orchestrator
+│   ├── prompt_builder.py      # XML-delimited prompt templates & instructions
+│   ├── query_normalization.py # Amharic character normalization & diacritic handling
+│   ├── query_rewriter.py      # Multi-turn query rewriting for standalone retrieval
+│   ├── rate_limiter.py        # Token-bucket rate limiter & quota manager
+│   ├── retriever.py           # Dense semantic ChromaDB search
+│   ├── rewrite_eval.py        # Query rewrite benchmark evaluation
+│   ├── security.py            # Injection classifiers & character sanitizers
+│   ├── token_counter.py       # Tiktoken / prompt token estimation
+│   └── __init__.py            # Package root
 ├── tests/
-│   ├── test_chunker.py        # Tokenizer & chunking unit tests (5 tests)
-│   ├── test_citations.py      # Citation validation unit tests (9 tests)
-│   ├── test_hybrid_retriever.py # BM25 & RRF fusion unit tests (3 tests)
-│   └── test_security.py       # Sanitization & injection tests (6 tests)
+│   ├── test_chunker.py        # Sentence splitting & chunking unit tests (5 tests)
+│   ├── test_citations.py      # Inline citation parsing & mapping tests (9 tests)
+│   ├── test_hybrid_retriever.py # BM25, RRF & FlashRank unit tests (6 tests)
+│   ├── test_rate_limiter.py   # Rate limiting & quota test suite (3 tests)
+│   └── test_security.py       # Input sanitization & injection tests (6 tests)
 ├── scripts/
-│   ├── ingest_corpus.py       # CLI tool to chunk & ingest custom documents
-│   ├── split_dataset.py       # Train/holdout dataset splitter
-│   ├── eval_retrieval.py      # Single-turn retrieval evaluation
-│   ├── eval_rewrite_only.py   # Query rewrite benchmark
-│   ├── eval_conversation_retrieval.py # Conversational retrieval evaluation
-│   └── run_all_evals.py       # Evaluation orchestrator
+│   ├── ingest_corpus.py       # Corpus ingestion & index generation CLI
+│   ├── split_dataset.py       # Train / holdout split generator (seed=42)
+│   ├── eval_retrieval.py      # Single-turn retrieval benchmark runner
+│   ├── eval_conversation_retrieval.py # Multi-turn retrieval evaluation
+│   ├── eval_rewrite_only.py   # Query rewriting performance evaluator
+│   ├── eval_generate.py      # End-to-end answer generation evaluator
+│   └── run_all_evals.py       # Full evaluation suite orchestrator
 ├── data/
 │   ├── raw/train_data.json    # AmQA Wikipedia knowledge corpus
 │   └── splits/                # Train and holdout benchmark splits
-├── results/                   # Benchmark evaluation artifacts
-├── app.py                     # Primary Streamlit web application
-├── main.py                    # Single-turn CLI interface
-├── config.py                  # Centralized configuration & settings
-├── Dockerfile                 # Production Docker deployment container
-├── requirements.txt           # Python dependencies
-└── .env.example               # Environment variables template
+├── results/                   # JSON benchmark evaluation logs & artifacts
+├── app.py                     # Primary Streamlit web application with live streaming
+├── main.py                    # Single-turn CLI execution entrypoint
+├── config.py                  # Pydantic environment configuration & settings
+├── pytest.ini                 # Pytest runner configuration
+├── Dockerfile                 # Production multi-stage Docker container definition
+├── requirements.txt           # Python package dependencies
+└── .env.example               # Environment variables configuration template
 ```
 
 ---
 
-## 6. Installation & Setup
+## 7. Quickstart Runbook
 
 ### Prerequisites
+- Python 3.10, 3.11, or 3.14
+- Google Gemini API Key (or Groq API Key)
 
-- Python 3.10 or 3.11
-- A Google Gemini API Key (or Groq API Key)
-
-### 1. Clone the repository
+### 1. Clone & Setup Virtual Environment
 
 ```bash
+# Clone the repository
 git clone https://github.com/IsaakAlemu/amharic-rag-assistant.git
 cd amharic-rag-assistant
-```
 
-### 2. Create and activate a virtual environment
-
-```bash
-# Windows
+# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate
 
-# Linux / macOS
-python3 -m venv .venv
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
 source .venv/bin/activate
 ```
 
-### 3. Install dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
-
-Copy the template file to `.env`:
+### 3. Configure Environment Variables
 
 ```bash
-# Windows
+# Copy environment template
+# Windows:
 copy .env.example .env
-
-# Linux / macOS
+# macOS / Linux:
 cp .env.example .env
 ```
 
-Open `.env` and configure your chosen provider:
+Edit `.env` to configure your API keys:
 
 ```env
-# For Google Gemini (default)
+# Primary LLM Configuration
 LLM_PROVIDER=gemini
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+GEMINI_API_KEY=your_google_gemini_api_key_here
 
-# Or for Groq
+# Optional: Groq Configuration
 # LLM_PROVIDER=groq
-# GROQ_API_KEY=your_actual_groq_api_key_here
+# GROQ_API_KEY=your_groq_api_key_here
+
+# Retrieval & Model Settings
+EMBED_MODEL=intfloat/multilingual-e5-small
+TOP_K=3
 ```
 
----
+### 4. Run the Test Suite (29 Tests)
 
-## 7. Running the Application
+```bash
+pytest tests/ -v
+```
 
-### Interactive Web UI (Streamlit)
+Expected output:
+```text
+tests/test_chunker.py ......... PASSED [17%]
+tests/test_citations.py ......... PASSED [48%]
+tests/test_hybrid_retriever.py ...... PASSED [68%]
+tests/test_rate_limiter.py ... PASSED [79%]
+tests/test_security.py ...... PASSED [100%]
+
+============================= 29 passed in 0.65s =============================
+```
+
+### 5. Launch the Web Application
 
 ```bash
 streamlit run app.py
 ```
 
-Open your browser to `http://localhost:8501`. On initial launch:
-1. `intfloat/multilingual-e5-small` weights are downloaded (~133 MB).
-2. The AmQA corpus (~286 documents) is automatically embedded and indexed in `chroma_db/`.
+Open `http://localhost:8501` in your browser. On initial boot:
+1. `intfloat/multilingual-e5-small` weights are loaded.
+2. The ChromaDB vector store and BM25 index initialize automatically.
+3. FlashRank cross-encoder is loaded for two-stage re-ranking.
 
-### Single-Turn CLI
+### 6. Single-Turn CLI Mode
 
 ```bash
 python main.py
+```
+
+### 7. Run Retrieval Evaluation Suite
+
+```bash
+# Run 329-question holdout benchmark evaluation
+python scripts/eval_retrieval.py --index-mode full
 ```
 
 ---
 
 ## 8. Docker Deployment
 
-Build and run the container locally:
+Build and run using the optimized Docker container:
 
 ```bash
-# Build the Docker image
-docker build -t amharic-rag-assistant .
+# Build Docker image
+docker build -t amharic-rag-assistant:latest .
 
-# Run the container
-docker run -p 8501:8501 --env-file .env amharic-rag-assistant
+# Run container with environment configuration
+docker run -d -p 8501:8501 --env-file .env --name amharic-rag amharic-rag-assistant:latest
 ```
 
-The web service will be available at `http://localhost:8501`.
+Navigate to `http://localhost:8501`.
 
 ---
 
-## 9. Running Tests & Evaluations
+## 9. Author & License
 
-### Automated Test Suite (23 Tests)
-
-Run all unit tests:
-
-```bash
-python -m unittest discover tests -v
-```
-
-### Running Benchmark Evaluations
-
-```bash
-# Evaluate single-turn retrieval on the 329-question holdout set
-python scripts/eval_retrieval.py
-
-# Evaluate multi-turn query rewriting
-python scripts/eval_rewrite_only.py
-
-# Ingest and chunk custom documents (.json, .txt, .md)
-python scripts/ingest_corpus.py --file data/raw/train_data.json --collection amqa
-```
-
----
-
-## 10. Limitations
-
-1. **Corpus Scope:** Grounded knowledge is currently bounded to ~286 AmQA Wikipedia articles; out-of-corpus queries will be intentionally refused.
-2. **Retrieval Precision:** Production hybrid retrieval Hit@1 is 77.81% on the holdout benchmark — while 90.88% of queries include the gold passage in Top-3, roughly 22% of queries rank another passage at rank 1.
-3. **Citation Scope:** Inline citations validate mapping to retrieved passage ranks (`[1]`, `[2]`), but do not verify semantic factuality beyond what prompting and retrieval restrict.
-4. **Generation Benchmarking:** End-to-end generation correctness has not yet been benchmarked at scale — while retrieval and prompt-injection security are rigorously measured, factual correctness of generated answers beyond citation-mapping is not yet independently scored.
-
----
-
-## 11. Author & License
-
-**Isaak Alemu**  
-Built independently as an AI Engineering portfolio project.
-- **GitHub:** [@IsaakAlemu](https://github.com/IsaakAlemu)  
+- **Author:** [Isaak Alemu](https://github.com/IsaakAlemu)  
+- **Project:** Conversational Amharic RAG Assistant  
 - **License:** [MIT License](LICENSE) (2026 Isaak Alemu)

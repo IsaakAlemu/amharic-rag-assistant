@@ -1,0 +1,287 @@
+{
+  "questions": [
+    {
+      "question_id": 282023,
+      "question": "ለተባበሩት መንግሥታት ድርጅት የደቡብ ሱዳን ሰላም ማስከበር ማን ተሾመ?",
+      "gold_document_id": "451668",
+      "reference_answer": "ብርጋዴር ጄነራል መአሾ ሀጎስ ስዩም",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282052,
+      "question": "የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?",
+      "gold_document_id": "451675",
+      "reference_answer": "በኤች.አይ.ቪ ኤድስ ላይ",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 280806,
+      "question": "ሁዋዌ በአሜሪካ አገልግሎቱን ያቋረጠው ቻይናና አሜሪካ ወደ ምን በመሄዳቸው ምክንያት ነው?",
+      "gold_document_id": "451613",
+      "reference_answer": "የንግድ ጦርነት",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 281768,
+      "question": "ኢትዮጵያ የአስትሮኖሚካል ሲምፖዚየም ያዘጋጀች ስንተኛዋ አፍሪካዊ ሀገር ናት?",
+      "gold_document_id": "451626",
+      "reference_answer": "ሶስተኛዋ ",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 281781,
+      "question": "ፕሮፌሰር ጥላሁን ይልማ በአረማያ እርሻ ኮሌጅ ለስንት ዓመት ተማሩ?",
+      "gold_document_id": "451628",
+      "reference_answer": "ለሁለት ",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282123,
+      "question": "ሶቅራጥስ ከዛንቲፕ ስንት ልጆች ወለደ?",
+      "gold_document_id": "452163",
+      "reference_answer": "ሶስት ",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 275102,
+      "question": "የላይቤሪያ መንግስት በወታደራዊው ኃይል ከስልጣን የተፈናቀለው መች ነበር?",
+      "gold_document_id": "266749",
+      "reference_answer": "በ1980 እ.ኤ.አ.",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282553,
+      "question": "ናሳ ለመጀመሪያ ጊዜ ሰዎችን ከመሬት ወደ ጨረቃ ለማጓጓዝ ያዘጋጀው መንኮራኩር ምን ይባላል?",
+      "gold_document_id": "452250",
+      "reference_answer": "አፖሎ 11",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282578,
+      "question": "ሳምሱ-ዲታናም እንደ ተገደለ የመሰለው መቼ ነበር?",
+      "gold_document_id": "452254",
+      "reference_answer": "1507 ዓክልበ. ",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282363,
+      "question": "የኢትዮጵያ ነገስታት ተፎካካሪያቸውን ወደ የትኛው ግዞት ቤት እንዲሄዱ ነበር የሚያደርጉት?",
+      "gold_document_id": "452207",
+      "reference_answer": "ወደ አምባ ግሽን ",
+      "retrieval_outcome": "miss",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282848,
+      "question": "የትነበርሽ ንጉሴ ሁለተኛ ደረጃ ትምህርቷን የት ተከታተለች?",
+      "gold_document_id": "452307",
+      "reference_answer": "ዳግማዊ  ምኒልክ ከፍተኛ ሁለተኛ ደረጃ ትምህርት ቤት",
+      "retrieval_outcome": "hit",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 207400,
+      "question": "በአናብስት ቤተሰብ ላይ በቤት ውስጥ አመራር የሚሰጡት እናማን ናቸው?",
+      "gold_document_id": "357950",
+      "reference_answer": "ሴቶቹ ናቸው",
+      "retrieval_outcome": "miss",
+      "source": "prior_eval_recovery"
+    },
+    {
+      "question_id": 282024,
+      "question": "ብርጋዴር ጄነራል መአሾ ስዩም ከዚህ በፊት የት ሠርተዋል?",
+      "gold_document_id": "451668",
+      "reference_answer": "በተመድ የላይቤሪያ እንዲሁም ዳርፉር ሰላም አስከባሪ ኃይል ውስጥ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282025,
+      "question": "ብርጋዴር ጄነራል መአሾ በኢትዮጵያ አየር ኃይል ውስጥ ለስንት ጊዜ አገልግለዋል?",
+      "gold_document_id": "451668",
+      "reference_answer": "ለ25 ዓመታት",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282026,
+      "question": "ብርጋዴር ጄነራል መአሾ ስዩም አዲሱ ሹመት ከመቼ አንስቶ ተሰጣቸው?",
+      "gold_document_id": "451668",
+      "reference_answer": "ከጥር 04 ቀን 2013 ዓ.ም",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282027,
+      "question": "በቶኪዮ ኦሎምፒክ ኢትዮጵያ በወርልድ ቴኳንዶ ስንተኛ ደረጃ አገኘች?",
+      "gold_document_id": "451669",
+      "reference_answer": "7ኛ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282028,
+      "question": "ኢትዮጵያ በኦሎምፒክ በወርልድ ቴኳንዶ የተሳተፈችው ለስንተኛ ጊዜ ነው?",
+      "gold_document_id": "451669",
+      "reference_answer": "ለመጀመሪያ ጊዜ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282029,
+      "question": "ኢትዮጵያ በቶኪዮ ኦሎምፒክ በወርልድ ቴኳንዶ በምን ምድብ ተወዳደረች?",
+      "gold_document_id": "451669",
+      "reference_answer": "በ58 ኪ.ግ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282030,
+      "question": "በቶኪዮ ኦሎምፒክ በወርልድ ቴኳንዶ በ58 ኪ.ግ ኢትዮጵያን ወክሎ የተሳተፈው አትሌት ማን ነው?",
+      "gold_document_id": "451669",
+      "reference_answer": "አትሌት ሰለሞን ቱፋ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282036,
+      "question": "የደቡብ ክልል የ2012 በጀት አመት ስንት ብር አፀደቀ?",
+      "gold_document_id": "451672",
+      "reference_answer": "40 ቢሊዮን 56 ሚሊዮን 938 ሺህ ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 280728,
+      "question": "የትኛው የሆሊውዱ የፊልም ኩባንያ ነው የቦክስ ኦፊስን የደረጃ ሰንጠረዥ በሰው ሰራሽ ሊያስገምት የፈለገው?",
+      "gold_document_id": "451589",
+      "reference_answer": "ዋርነር ብሮስ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 280729,
+      "question": "የሆሊውዱ የፊልም ኩባንያ ዋርነር ብሮስ በሰው ሰራሽ መሳሪያ (አርቴፊሻል ኢንተሌጀንስ) ለማስገመት ያሰበው ምንን ነው?",
+      "gold_document_id": "451589",
+      "reference_answer": "የቦክስ ኦፊስን የደረጃ ሰንጠረዥ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 280730,
+      "question": "ዋርነር ብሮስ በአርቴፊሻል ኢንተሌጀንስ መሰረት ያደረገ የቦክስ ኦፊስን ደረጃ ሰንጠረዥ መገመቻ መሳሪያ ለማሰራት የተዋዋለው ከማን ጋር ነው?",
+      "gold_document_id": "451589",
+      "reference_answer": "ከኤልኤ ስታርት አፕ ሲኔለይቲክ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282050,
+      "question": "የተ.መ.ድ አካል ዩኤን ኤድስ ዋና ሥራ አስፈፃሚ ማን ነው?",
+      "gold_document_id": "451675",
+      "reference_answer": "ዊኒ ቢያንዩማን",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282054,
+      "question": "ፕሬዝደንት ሳህለወርቅ ዘውዴና የዩኤን ኤድስ ዋና ስራ አስፈጻሚ የተመካከሩት በምን ዙሪያ ነው?",
+      "gold_document_id": "451675",
+      "reference_answer": "በኢትዮጵያ የቫይረሱን ስርጭት ለመከላከል በተያዙ ዕቅዶች ላይ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282053,
+      "question": "የዩኤን ኤድስ ዋና ስራ አስፈጻሚ በኢትዮጵያ የኤች.አይ.ቪ ኤድስ ስርጭት የሚገታበትን ሁኔታ ከማን ጋር ተመካከሩ?",
+      "gold_document_id": "451675",
+      "reference_answer": "ፕሬዝዳንት ሣህለወርቅ ዘውዴ",
+      "retrieval_outcome": "hit",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 281987,
+      "question": "ወ/ሮ ሠናይት የምን ሙያ ባለቤት ነች?",
+      "gold_document_id": "451660",
+      "reference_answer": "የጤና ኤክስቴንሽን ባለሞያ",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 281771,
+      "question": "በአዲስ አባባ ዩኒቨርስቲ በየትኛው ካምፓስ ለሚገኙ 2ኛ እና 3ኛ ዲግሪ ተማሪዎች ነው ስልጠና ለመስጠት የታሰበው?",
+      "gold_document_id": "451626",
+      "reference_answer": "አራት ኪሎ",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 281772,
+      "question": "ስለአስተሮኖሚ የግንዛቤ ማስጨበጫ ፕሮግራም ስንት የሕዝብ ትምህርት ቤቶች ለማድረግ ታቅዷል?",
+      "gold_document_id": "451626",
+      "reference_answer": "10 ",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282457,
+      "question": "ፋሺስት ኢትዮጵያን በወረረበት ጊዜ አቡነ ባስልዮስ ምን ደረጃ ላይ ነበሩ?",
+      "gold_document_id": "452227",
+      "reference_answer": "አምሣ-ዘጠነኛው ዕጨጌ ",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282458,
+      "question": "አቡነ ባስልዮስ በመጀመርያ የምን ቤተክርስቲያን አስተዳዳሪ ነበሩ?",
+      "gold_document_id": "452227",
+      "reference_answer": "በኢየሩሳሌም ያሉ የኢትዮጵያን ገዳማት",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282817,
+      "question": "የካሣ የትዳር አጋር ማን ትባላለች?",
+      "gold_document_id": "452303",
+      "reference_answer": "ሊና  ኑር አሕመድ ",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282818,
+      "question": "ካሳ ስንት ልጆች ወለደ?",
+      "gold_document_id": "452303",
+      "reference_answer": "ሁለት",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282361,
+      "question": "አፄ ፋሲል ልጃቸውን ዳዊትን መቼ ወደ ግዞት ቤት ወሰዱት?",
+      "gold_document_id": "452207",
+      "reference_answer": "በ1666",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    },
+    {
+      "question_id": 282851,
+      "question": "የትነበርሽ በ2006ዓ.ም የምን ማህበር መሰረተች?",
+      "gold_document_id": "452307",
+      "reference_answer": "የአዲስ አበባ ዩኒቨርስቲ (አአዩ) ሴት ተማሪዎች ማህበር",
+      "retrieval_outcome": "miss",
+      "source": "holdout_sample"
+    }
+  ],
+  "total": 35,
+  "hits": 24,
+  "misses": 11
+}

@@ -157,3 +157,187 @@ def reciprocal_rank_fusion(
         )
 
     return fused_results
+
+
+class Reranker:
+    """Two-stage cross-encoder re-ranker using FlashRank with graceful fallback."""
+
+    def __init__(
+        self,
+        model_name: str = "ms-marco-TinyBERT-L-2-v2",
+        ranker: Any = None,
+    ):
+        self.model_name = model_name
+        self.ranker = ranker
+        self._available = False
+
+        if self.ranker is not None:
+            self._available = True
+        else:
+            try:
+                from flashrank import Ranker
+
+                self.ranker = Ranker(model_name=model_name)
+                self._available = True
+            except Exception:
+                self.ranker = None
+                self._available = False
+
+    @property
+    def is_available(self) -> bool:
+        return self._available and self.ranker is not None
+
+    def rerank(
+        self,
+        query: str,
+        documents: list[RetrievedDocument],
+        top_k: int = 5,
+    ) -> list[RetrievedDocument]:
+        """
+        Re-score and re-order candidate documents using FlashRank.
+        If FlashRank is unavailable or fails, gracefully returns the top_k candidates as-is.
+        """
+        if not documents:
+            return []
+
+        if not self.is_available or self.ranker is None:
+            return documents[:top_k]
+
+        try:
+            from flashrank import RerankRequest
+
+            passages = [
+                {
+                    "id": str(doc.get("document_id", f"doc_{idx}")),
+                    "text": doc.get("text", ""),
+                    "metadata": {
+                        "distance": doc.get("distance", 0.0),
+                        "original_rank": doc.get("rank", idx + 1),
+                    },
+                }
+                for idx, doc in enumerate(documents)
+            ]
+
+            request = RerankRequest(query=query, passages=passages)
+            results = self.ranker.rerank(request)
+
+            reranked: list[RetrievedDocument] = []
+            for rank_idx, item in enumerate(results[:top_k], start=1):
+                meta = item.get("metadata") or {}
+                orig_dist = meta.get("distance")
+                score = float(item.get("score", 0.0))
+                # Preserve original distance if valid, or derive a normalized distance from score
+                dist = orig_dist if orig_dist is not None else 1.0 / (1.0 + max(0.0, score))
+                reranked.append(
+                    {
+                        "document_id": str(item.get("id", "")),
+                        "text": item.get("text", ""),
+                        "distance": float(dist),
+                        "rank": rank_idx,
+                    }
+                )
+            return reranked
+        except Exception:
+            return documents[:top_k]
+
+
+class HybridRetriever:
+    """
+    Two-stage Hybrid Retriever combining Dense Semantic Search (Chroma),
+    Lexical BM25 keyword matching (RRF fusion), and FlashRank re-ranking.
+    """
+
+    def __init__(
+        self,
+        collection: Any = None,
+        embed_model: Any = None,
+        bm25_retriever: BM25Retriever | None = None,
+        reranker: Reranker | None = None,
+        use_reranker: bool = True,
+        reranker_top_k: int = 5,
+        initial_top_k: int = 15,
+        rrf_k: int = 60,
+    ):
+        self.collection = collection
+        self.embed_model = embed_model
+        self.bm25_retriever = bm25_retriever
+        self.use_reranker = use_reranker
+        self.reranker_top_k = reranker_top_k
+        self.initial_top_k = initial_top_k
+        self.rrf_k = rrf_k
+        self._reranker = reranker
+
+    @property
+    def reranker(self) -> Reranker | None:
+        if self._reranker is None and self.use_reranker:
+            try:
+                self._reranker = Reranker()
+            except Exception:
+                self._reranker = None
+        return self._reranker
+
+    def retrieve(
+        self,
+        query: str,
+        *,
+        collection: Any = None,
+        embed_model: Any = None,
+        bm25_retriever: BM25Retriever | None = None,
+        top_k: int | None = None,
+        initial_top_k: int | None = None,
+        use_reranker: bool | None = None,
+        reranker_top_k: int | None = None,
+        rrf_k: int | None = None,
+    ) -> list[RetrievedDocument]:
+        """
+        Execute two-stage hybrid retrieval:
+        1. Retrieve top `initial_top_k` candidate documents via Dense (Chroma) + BM25 with RRF.
+        2. Format documents for FlashRank and re-score against the query if re-ranking is enabled.
+        3. Fall back to RRF ranking if re-ranking is disabled or fails.
+        """
+        col = collection if collection is not None else self.collection
+        model = embed_model if embed_model is not None else self.embed_model
+        bm25 = bm25_retriever if bm25_retriever is not None else self.bm25_retriever
+        should_rerank = use_reranker if use_reranker is not None else self.use_reranker
+        r_top_k = (
+            reranker_top_k
+            if reranker_top_k is not None
+            else (top_k if top_k is not None else self.reranker_top_k)
+        )
+        init_k = (
+            initial_top_k
+            if initial_top_k is not None
+            else max(self.initial_top_k, r_top_k * 2)
+        )
+        k_const = rrf_k if rrf_k is not None else self.rrf_k
+
+        dense_results: list[RetrievedDocument] = []
+        if col is not None and model is not None:
+            from src.retriever import retrieve as dense_retrieve
+
+            dense_results = dense_retrieve(query, col, model, top_k=init_k)
+
+        lexical_results: list[dict[str, Any]] = []
+        if bm25 is not None:
+            lexical_results = bm25.search(query, top_k=init_k)
+
+        # Step 1: Candidate retrieval and RRF fusion
+        candidates = reciprocal_rank_fusion(
+            dense_results,
+            lexical_results,
+            rrf_k=k_const,
+            top_k=init_k,
+        )
+
+        if not candidates:
+            return []
+
+        # Step 2: Re-ranking
+        if should_rerank:
+            active_reranker = self.reranker or Reranker()
+            if active_reranker and active_reranker.is_available:
+                return active_reranker.rerank(query, candidates, top_k=r_top_k)
+
+        # Step 3: Graceful fallback to RRF candidates
+        return candidates[:r_top_k]
+
