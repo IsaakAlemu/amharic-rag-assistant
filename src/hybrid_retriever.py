@@ -226,7 +226,6 @@ class Reranker:
                 meta = item.get("metadata") or {}
                 orig_dist = meta.get("distance")
                 score = float(item.get("score", 0.0))
-                # Preserve original distance if valid, or derive a normalized distance from score
                 dist = orig_dist if orig_dist is not None else 1.0 / (1.0 + max(0.0, score))
                 reranked.append(
                     {
@@ -253,7 +252,7 @@ class HybridRetriever:
         embed_model: Any = None,
         bm25_retriever: BM25Retriever | None = None,
         reranker: Reranker | None = None,
-        use_reranker: bool = True,
+        use_reranker: bool = False,
         reranker_top_k: int = 5,
         initial_top_k: int = 15,
         rrf_k: int = 60,

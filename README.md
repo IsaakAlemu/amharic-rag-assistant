@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.61.1-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-1.5.9-orange)](https://www.trychroma.com/)
-[![FlashRank](https://img.shields.io/badge/FlashRank-0.2.10-purple)](https://github.com/PrithivirajDamodaran/FlashRank)
+[![FlashRank](https://img.shields.io/badge/FlashRank-0.2.10%20(Disabled)-lightgrey)](https://github.com/PrithivirajDamodaran/FlashRank)
 [![Google Gemini](https://img.shields.io/badge/Google%20GenAI-Gemini%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Groq](https://img.shields.io/badge/Groq-Cloud%20Inference-F05032)](https://groq.com/)
 [![Pytest](https://img.shields.io/badge/Pytest-29%2F29%20Passed-brightgreen?logo=pytest&logoColor=white)](https://docs.pytest.org/)
@@ -28,7 +28,7 @@ Amharic (አማርኛ) is the second most spoken Semitic language globally with 
 3. **Exact Acronym & Named Entity Failure:** Dense vector search frequently maps domain-specific Ethiopian acronyms (e.g., `የተ.መ.ድ` for UN, `ዩኤን ኤድስ` for UNAIDS, `ኢዜአ` for ENA) to vague generic regions in vector space, failing to achieve top-rank precision for factual lookups.
 4. **Adversarial & Delimiter Vulnerabilities:** Multilingual LLMs often misinterpret mixed-language prompt-injection attempts or cross-lingual jailbreak phrasing unless protected by rigorous character sanitization, delimiter isolation, and bilingual boundary defense classifiers.
 
-To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and local FlashRank cross-encoder re-ranking, wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
+To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and optional cross-encoder re-ranking (disabled by default in production), wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
 
 ---
 
@@ -56,8 +56,9 @@ flowchart TD
         SQ --> BM25["Sparse Lexical Search (Custom BM25)"]
         DENSE --> |Top-15 Candidates| RRF["Reciprocal Rank Fusion (RRF, k=60)"]
         BM25 --> |Top-15 Candidates| RRF
-        RRF --> |Top-15 Fused Passages| RERANK["FlashRank Cross-Encoder Re-ranker"]
-        RERANK --> |Top-5 High-Precision Passages| CTX["Context Manager & Assembler"]
+        RRF --> |Top-3 Production Passages (use_reranker=False)| CTX["Context Manager & Assembler"]
+        RRF -.-> |Optional / Disabled| RERANK["FlashRank Cross-Encoder Re-ranker"]
+        RERANK -.-> CTX
     end
 
     subgraph GENERATION["4. Grounded Generation & Verification"]
@@ -76,9 +77,9 @@ flowchart TD
    - **Dense Index:** Chunks are prefixed (`passage: `) and embedded using `intfloat/multilingual-e5-small` into a persistent local ChromaDB instance with cosine similarity indexing.
    - **Lexical Index:** In-memory BM25 index built with a dedicated regex tokenizer (`[\w\u1200-\u137F]+`) to index Amharic and Latin tokens simultaneously.
 3. **Conversational Multi-Turn Query Rewriter:** When a user asks follow-up questions with pronouns or omitted subjects (e.g., Turn 1: *"ስለ አቡነ ባስልዮስ ንገረኝ"*, Turn 2: *"የተወለዱት መቼ ነው?"*), the conversational rewriter resolves references to synthesize a standalone search query (`"አቡነ ባስልዮስ የተወለዱት መቼ ነው?"`) before querying the retrieval indices.
-4. **Two-Stage Re-ranking:**
-   - **Stage 1 (Candidate Generation):** Dense search and BM25 retrieve top-15 candidates each. Reciprocal Rank Fusion ($Score = \sum \frac{1}{60 + \text{rank}}$) merges the lists to ensure both semantic depth and exact acronym/keyword matches are captured.
-   - **Stage 2 (Cross-Encoder Re-ranking):** FlashRank cross-encoder (`ms-marco-TinyBERT-L-2-v2`) re-scores query-passage interaction pairs directly to promote the most relevant evidence to the top-5 slots, with automated fallback if re-ranking is disabled.
+4. **Two-Stage Re-ranking (Supported, Disabled by Default):**
+   - **Stage 1 (Candidate Generation & Production Retrieval):** Dense search and BM25 retrieve top-15 candidates each. Reciprocal Rank Fusion ($Score = \sum \frac{1}{60 + \text{rank}}$) merges the lists to ensure both semantic depth and exact acronym/keyword matches are captured, serving top-$k$ results directly in production (`use_reranker=False`).
+   - **Stage 2 (Cross-Encoder Re-ranking Architecture):** A modular `Reranker` class (`FlashRank` / `SentenceTransformers`) is implemented in code with unit tests and fallback logic, but remains disabled by default because no CPU-feasible multilingual re-ranker has been validated for Amharic at production scale.
 5. **Grounded Generation & Inline Citations:** Retrieved evidence is formatted within strict XML delimiters (`<retrieved_evidence>`). The generator must substantiate every statement with inline citation anchors (e.g., `[1]`, `[2]`). If evidence is insufficient, the system emits an automated grounded refusal.
 
 ---
@@ -88,7 +89,7 @@ flowchart TD
 | Layer | Technology | Specification & Purpose |
 |---|---|---|
 | **Web Interface** | Streamlit 1.61+ | Live token-by-token streaming, custom Amharic typography (Noto Sans Ethiopic), telemetry dashboard |
-| **Re-ranking Engine** | FlashRank 0.2.10 | Ultra-fast local ONNX-based cross-encoder candidate re-ranking |
+| **Re-ranking Engine** | FlashRank 0.2.10 | Local ONNX cross-encoder re-ranking module (implemented; disabled by default in production) |
 | **Vector Database** | ChromaDB 1.5.9 | Local persistent cosine distance vector store |
 | **Embeddings** | `intfloat/multilingual-e5-small` | 384-dimensional dense semantic vector representations |
 | **Lexical Engine** | Custom In-Memory BM25 | Pure Python BM25 ranking ($k_1=1.5, b=0.75$) with Ethiopic regex tokenization |
@@ -104,23 +105,22 @@ Benchmarking was conducted on the holdout evaluation split comprising **329 unse
 
 ### 4.1 Retrieval Pipeline Progression
 
-| Pipeline Configuration | Hit@1 | Hit@3 | Hit@5 | Hit@10 | MRR (Mean Reciprocal Rank) | Context Recall |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Dense Vector Search Only** (`multilingual-e5-small`) | 72.64% | 83.89% | 87.23% | 89.36% | 0.7781 | 84.80% |
-| **Lexical Search Only** (Custom BM25) | 68.39% | 82.37% | 85.11% | 87.84% | 0.7482 | 82.37% |
-| **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | 77.81% | 90.88% | 94.83% | 98.48% | 0.8535 | 92.10% |
-| **Two-Stage Hybrid + FlashRank Re-ranking** | **82.67%** | **92.40%** | **96.35%** | **98.48%** | **0.8718** | **94.83%** |
+| Pipeline Configuration | Hit@1 | Hit@3 | MRR (Mean Reciprocal Rank) | Context Recall | Status |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Dense Vector Search Only** (`multilingual-e5-small`) | 72.64% | 83.89% | 0.7781 | 84.80% | Baseline |
+| **Lexical Search Only** (Custom BM25) | 68.39% | 82.37% | 0.7482 | 82.37% | Baseline |
+| **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | **77.51%** | **92.10%** | **0.8430** | **92.71%** | **Production (`use_reranker=False`)** |
 
 ### 4.2 Engineering Key Findings
 
-1. **Dense vs. BM25 Synergy:** While dense retrieval excels at semantic similarity, BM25 dominates on specific numbers, dates, and named entities. Fusing them with RRF yielded a **+5.17 percentage point boost in Hit@1** (from 72.64% to 77.81%) and **+7.54 pp in MRR**.
-2. **Two-Stage Re-ranking Impact:** Adding FlashRank cross-encoder re-ranking as Stage 2 refined the top-15 candidates, boosting **Hit@1 to 82.67%** (+4.86 pp over RRF alone, +10.03 pp over Dense baseline) and achieving an overall **MRR of 0.8718**.
+1. **Dense vs. BM25 Synergy:** While dense retrieval excels at semantic similarity, BM25 dominates on specific numbers, dates, and named entities. Fusing them with Reciprocal Rank Fusion (RRF, $k=60$) yielded a **+4.87 percentage point boost in Hit@1** (from 72.64% to 77.51%) and **+6.49 pp in MRR** (0.7781 to 0.8430).
+2. **Re-ranking: Investigated, Not Shipped:** An English-only FlashRank cross-encoder (`ms-marco-TinyBERT-L-2-v2`) was evaluated first and found broken for Amharic due to out-of-vocabulary tokenization (all Ethiopic text mapped to `[UNK]`, collapsing Hit@1 to 11.55%). A multilingual cross-encoder (`BAAI/bge-reranker-v2-m3`) was tested next and confirmed linguistically viable with 2,986 Ethiopic tokens. However, full cross-attention inference proved computationally prohibitive on CPU at production/eval scale (~66s per query, scaling to ~6 hours for the full 329-question holdout set), so re-ranking is disabled (`use_reranker=False`) in production.
 3. **Acronym Disambiguation Case Study:**
    - **Query:** `"የተ.መ.ድ አካል ዩኤን ኤድስ በምን ላይ ትኩረት አድርጎ ይሠራል?"` (What does the UN agency UNAIDS focus on?)
    - **Gold Document:** `451675`
    - *Dense Baseline:* Ranked at **#2** (semantic drift).
    - *BM25 Lexical:* Ranked at **#1** (exact keyword matching).
-   - *Two-Stage Re-ranking:* Ranked at **#1** with high cross-encoder confidence score.
+   - *Hybrid RRF:* Ranked at **#1** (exact match + semantic confirmation).
 
 ---
 
@@ -145,8 +145,8 @@ flowchart LR
   > *"ከተሰጡት ሰነዶች በመነሳት ጥያቄውን መመለስ አልተቻለም።"*  
   > (Translation: "It is not possible to answer this question based on the provided documents.")
 
-### 3. Graceful Fallback
-- `FlashRank` re-ranking is wrapped in isolated try/except handlers. If the ONNX runtime or model initialization encounters an environment constraint, the pipeline automatically falls back to raw RRF ranking without user disruption.
+### 3. Graceful Fallback & Modular Re-ranking
+- `FlashRank` / cross-encoder re-ranking is fully modular and wrapped in isolated try/except handlers (`use_reranker=False` by default). When enabled experimentally, any runtime initialization failure automatically falls back to raw RRF ranking without user disruption.
 
 ### 4. Rate Limiting & Token Quotas
 - Built-in token-bucket rate limiter (`src/rate_limiter.py`) protects upstream inference quotas, accompanied by an interactive session reset counter in the Streamlit UI.
@@ -295,7 +295,7 @@ streamlit run app.py
 Open `http://localhost:8501` in your browser. On initial boot:
 1. `intfloat/multilingual-e5-small` weights are loaded.
 2. The ChromaDB vector store and BM25 index initialize automatically.
-3. FlashRank cross-encoder is loaded for two-stage re-ranking.
+3. Hybrid retrieval serves fused RRF rankings directly (re-ranking disabled by default).
 
 ### 6. Single-Turn CLI Mode
 
