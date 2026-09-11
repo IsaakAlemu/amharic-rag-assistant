@@ -309,22 +309,26 @@ Grounded, conversational Amharic Question Answering over a verified AmQA Wikiped
 ```
 User Question (Amharic)
 ↓
-Gemini 3.6 Flash / LLaMA-8B (Query Rewriter)
+Conversational Query Rewriter (LLM)
 ↓
-Multilingual-E5 Dense Retrieval (ChromaDB)
+Parallel Dual Retrieval:
+  ├─ Multilingual-E5 Dense Search (ChromaDB)
+  └─ Custom Sparse Lexical Search (BM25)
 ↓
-Top-3 Evidence Filtering
+Reciprocal Rank Fusion (RRF, k=60)
 ↓
-Gemini 3.6 Flash / LLaMA-70B (Grounded Generator)
+Top-3 Grounded Evidence Assembly
+↓
+Grounded LLM Generator (Gemini / Groq)
 ↓
 Inline Citation Parsing & Fact Validation
 ```
 
 **Retrieval Benchmark (329-Q Holdout Set)**  
-- **Hit@1:** 72.64%  
-- **Hit@3:** 83.89%  
-- **MRR (Mean Reciprocal Rank):** 0.778  
-*(Note: Retrieval metrics reflect the dense vector search performance on the 329-question holdout benchmark across all LLM providers.)*
+- **Hit@1:** 77.51%  
+- **Hit@3:** 92.10%  
+- **MRR (Mean Reciprocal Rank):** 0.843  
+*(Note: Retrieval metrics reflect production Two-Stage Hybrid Dense + BM25 RRF retrieval performance on the 329-question holdout benchmark.)*
 
 **Grounding & Anti-Hallucination**  
 Answers are strictly bounded by retrieved evidence. When knowledge is missing, the system outputs an explicit refusal rather than hallucinating facts.
