@@ -331,5 +331,5 @@ Navigate to `http://localhost:8501`.
 ## 8. Author & License
 
 - **Author:** [Isaak Alemu](https://github.com/IsaakAlemu)  
-- **Project:** Conversational Amharic RAG Assistant  
+- **Project:** Amharic RAG: Hybrid Retrieval for a Low-Resource Language  
 - **License:** [MIT License](LICENSE) (2026 Isaak Alemu)
