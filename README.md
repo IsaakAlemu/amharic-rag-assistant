@@ -109,7 +109,7 @@ Benchmarking was conducted on the holdout evaluation split comprising **329 unse
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Dense Vector Search Only** (`multilingual-e5-small`) | 72.64% | 83.89% | 0.7781 | 84.80% | Baseline |
 | **Lexical Search Only** (Custom BM25) | 68.39% | 82.37% | 0.7482 | 82.37% | Baseline |
-| **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | **77.51%** | **92.10%** | **0.8430** | **92.71%** | **Production (`use_reranker=False`)** |
+| **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | **77.51%** | **92.10%** | **0.8430** | **92.71%** | **Active (Default) (`use_reranker=False`)** |
 
 ### 3.2 Engineering Key Findings
 
