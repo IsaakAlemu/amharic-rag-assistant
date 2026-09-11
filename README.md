@@ -56,13 +56,13 @@ flowchart TD
         SQ --> BM25["Sparse Lexical Search (Custom BM25)"]
         DENSE --> |Top-15 Candidates| RRF["Reciprocal Rank Fusion (RRF, k=60)"]
         BM25 --> |Top-15 Candidates| RRF
-        RRF --> |Top-3 Production Passages (use_reranker=False)| CTX["Context Manager & Assembler"]
-        RRF -.-> |Optional / Disabled| RERANK["FlashRank Cross-Encoder Re-ranker"]
+        RRF --> |Top-3 Production Passages| CTX["Context Manager & Assembler"]
+        RRF -.-> |Optional Re-ranking - Disabled| RERANK["FlashRank Cross-Encoder Re-ranker"]
         RERANK -.-> CTX
     end
 
     subgraph GENERATION["4. Grounded Generation & Verification"]
-        CTX --> PROMPT["XML-Delimited Prompt Builder (<retrieved_evidence>)"]
+        CTX --> PROMPT["XML-Delimited Prompt Builder"]
         PROMPT --> LLM["Google Gemini / Groq LLM Inference"]
         LLM --> STREAM["Real-Time Token Streamer"]
         STREAM --> CIT["Citation Validator & Post-Processor"]
