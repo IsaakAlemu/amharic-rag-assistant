@@ -1,4 +1,19 @@
-# Conversational Amharic RAG Assistant
+# Amharic RAG: Hybrid Retrieval for a Low-Resource Language
+
+*A retrieval-augmented QA system built and benchmarked on a 286-document AmQA Wikipedia corpus — solving real Ge'ez-script and morphology problems that break standard multilingual embeddings.*
+
+---
+
+## Problem Context & Low-Resource NLP Challenges
+
+Amharic (አማርኛ) is the second most spoken Semitic language globally with over 57 million speakers, yet it remains critically under-served in modern Natural Language Processing and information retrieval pipelines. Building RAG systems for Amharic poses unique linguistic and architectural challenges:
+
+1. **Morphological Richness & Agglutination:** Amharic exhibits complex root-and-pattern (non-concatenative) morphology. Prepositions (`ከ`, `በ`, `ለ`, `የ`), conjunctions (`እና`, `ስለ`), possessive suffixes (`-ኦቻችን`, `-አቸው`), and definite articles are affixed directly to nouns, verbs, and adjectives. Standard whitespace tokenizers treat `ለተባበሩት` ("for the united") and `የተባበሩት` ("of the united") as completely disjoint tokens, causing severe lexical mismatch in naive search.
+2. **Sub-Word Fragmentation in Dense Embeddings:** Pretrained multilingual embedding models (e.g. multilingual-e5, mBERT) allocate a negligible proportion of their vocabulary budget to the Ethiopic/Ge'ez Unicode block (`U+1200` to `U+137F`). This results in severe sub-character and multi-piece token fragmentation, diluting vector semantic density for domain-specific named entities and acronyms.
+3. **Exact Acronym & Named Entity Failure:** Dense vector search frequently maps domain-specific Ethiopian acronyms (e.g., `የተ.መ.ድ` for UN, `ዩኤን ኤድስ` for UNAIDS, `ኢዜአ` for ENA) to vague generic regions in vector space, failing to achieve top-rank precision for factual lookups.
+4. **Adversarial & Delimiter Vulnerabilities:** Multilingual LLMs often misinterpret mixed-language prompt-injection attempts or cross-lingual jailbreak phrasing unless protected by rigorous character sanitization, delimiter isolation, and bilingual boundary defense classifiers.
+
+To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and optional cross-encoder re-ranking (disabled by default in production), wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
 
 <div align="center">
 
@@ -11,28 +26,13 @@
 [![Pytest](https://img.shields.io/badge/Pytest-29%2F29%20Passed-brightgreen?logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**An enterprise-grade, two-stage Conversational Retrieval-Augmented Generation (RAG) system engineered natively for the Amharic language over an AmQA-derived Wikipedia knowledge base.**
-
-[Explore Live Demo](https://amharic-rag-assistant.streamlit.app/) • [Architecture](#2-system-architecture) • [Retrieval Benchmarks](#4-empirical-evaluation--retrieval-benchmarks) • [Quickstart](#7-quickstart-runbook)
+[Explore Live Demo](https://amharic-rag-assistant.streamlit.app/) • [Architecture](#1-system-architecture) • [Retrieval Benchmarks](#3-empirical-evaluation--retrieval-benchmarks) • [Quickstart](#6-quickstart-runbook)
 
 </div>
 
 ---
 
-## 1. Problem Context & Low-Resource NLP Challenges
-
-Amharic (አማርኛ) is the second most spoken Semitic language globally with over 57 million speakers, yet it remains critically under-served in modern Natural Language Processing and information retrieval pipelines. Building production-grade RAG systems for Amharic poses unique linguistic and architectural challenges:
-
-1. **Morphological Richness & Agglutination:** Amharic exhibits complex root-and-pattern (non-concatenative) morphology. Prepositions (`ከ`, `በ`, `ለ`, `የ`), conjunctions (`እና`, `ስለ`), possessive suffixes (`-ኦቻችን`, `-አቸው`), and definite articles are affixed directly to nouns, verbs, and adjectives. Standard whitespace tokenizers treat `ለተባበሩት` ("for the united") and `የተባበሩት` ("of the united") as completely disjoint tokens, causing severe lexical mismatch in naive search.
-2. **Sub-Word Fragmentation in Dense Embeddings:** Pretrained multilingual embedding models (e.g. multilingual-e5, mBERT) allocate a negligible proportion of their vocabulary budget to the Ethiopic/Ge'ez Unicode block (`U+1200` to `U+137F`). This results in severe sub-character and multi-piece token fragmentation, diluting vector semantic density for domain-specific named entities and acronyms.
-3. **Exact Acronym & Named Entity Failure:** Dense vector search frequently maps domain-specific Ethiopian acronyms (e.g., `የተ.መ.ድ` for UN, `ዩኤን ኤድስ` for UNAIDS, `ኢዜአ` for ENA) to vague generic regions in vector space, failing to achieve top-rank precision for factual lookups.
-4. **Adversarial & Delimiter Vulnerabilities:** Multilingual LLMs often misinterpret mixed-language prompt-injection attempts or cross-lingual jailbreak phrasing unless protected by rigorous character sanitization, delimiter isolation, and bilingual boundary defense classifiers.
-
-To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and optional cross-encoder re-ranking (disabled by default in production), wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
-
----
-
-## 2. System Architecture
+## 1. System Architecture
 
 ```mermaid
 flowchart TD
@@ -84,7 +84,7 @@ flowchart TD
 
 ---
 
-## 3. Technology Stack
+## 2. Technology Stack
 
 | Layer | Technology | Specification & Purpose |
 |---|---|---|
@@ -99,11 +99,11 @@ flowchart TD
 
 ---
 
-## 4. Empirical Evaluation & Retrieval Benchmarks
+## 3. Empirical Evaluation & Retrieval Benchmarks
 
 Benchmarking was conducted on the holdout evaluation split comprising **329 unseen AmQA test questions** across ~286 passage-level documents (`split_seed=42`, `holdout_ratio=0.2`).
 
-### 4.1 Retrieval Pipeline Progression
+### 3.1 Retrieval Pipeline Progression
 
 | Pipeline Configuration | Hit@1 | Hit@3 | MRR (Mean Reciprocal Rank) | Context Recall | Status |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -111,7 +111,7 @@ Benchmarking was conducted on the holdout evaluation split comprising **329 unse
 | **Lexical Search Only** (Custom BM25) | 68.39% | 82.37% | 0.7482 | 82.37% | Baseline |
 | **Hybrid Retrieval (Dense + BM25 via RRF, $k=60$)** | **77.51%** | **92.10%** | **0.8430** | **92.71%** | **Production (`use_reranker=False`)** |
 
-### 4.2 Engineering Key Findings
+### 3.2 Engineering Key Findings
 
 1. **Dense vs. BM25 Synergy:** While dense retrieval excels at semantic similarity, BM25 dominates on specific numbers, dates, and named entities. Fusing them with Reciprocal Rank Fusion (RRF, $k=60$) yielded a **+4.87 percentage point boost in Hit@1** (from 72.64% to 77.51%) and **+6.49 pp in MRR** (0.7781 to 0.8430).
 2. **Re-ranking: Investigated, Not Shipped:** An English-only FlashRank cross-encoder (`ms-marco-TinyBERT-L-2-v2`) was evaluated first and found broken for Amharic due to out-of-vocabulary tokenization (all Ethiopic text mapped to `[UNK]`, collapsing Hit@1 to 11.55%). A multilingual cross-encoder (`BAAI/bge-reranker-v2-m3`) was tested next and confirmed linguistically viable with 2,986 Ethiopic tokens. However, full cross-attention inference proved computationally prohibitive on CPU at production/eval scale (~66s per query, scaling to ~6 hours for the full 329-question holdout set), so re-ranking is disabled (`use_reranker=False`) in production.
@@ -124,7 +124,7 @@ Benchmarking was conducted on the holdout evaluation split comprising **329 unse
 
 ---
 
-## 5. Production Guardrails & Reliability
+## 4. Safety & Reliability Guardrails
 
 ```mermaid
 flowchart LR
@@ -153,7 +153,7 @@ flowchart LR
 
 ---
 
-## 6. Repository Structure
+## 5. Repository Structure
 
 ```
 amharic-rag-assistant/
@@ -206,14 +206,14 @@ amharic-rag-assistant/
 ├── main.py                    # Single-turn CLI execution entrypoint
 ├── config.py                  # Pydantic environment configuration & settings
 ├── pytest.ini                 # Pytest runner configuration
-├── Dockerfile                 # Production multi-stage Docker container definition
+├── Dockerfile                 # Multi-stage Docker container definition
 ├── requirements.txt           # Python package dependencies
 └── .env.example               # Environment variables configuration template
 ```
 
 ---
 
-## 7. Quickstart Runbook
+## 6. Quickstart Runbook
 
 ### Prerequisites
 - Python 3.10, 3.11, or 3.14
@@ -312,9 +312,9 @@ python scripts/eval_retrieval.py --index-mode full
 
 ---
 
-## 8. Docker Deployment
+## 7. Docker Deployment
 
-Build and run using the optimized Docker container:
+Build and run using the Docker container:
 
 ```bash
 # Build Docker image
@@ -328,7 +328,7 @@ Navigate to `http://localhost:8501`.
 
 ---
 
-## 9. Author & License
+## 8. Author & License
 
 - **Author:** [Isaak Alemu](https://github.com/IsaakAlemu)  
 - **Project:** Conversational Amharic RAG Assistant  
