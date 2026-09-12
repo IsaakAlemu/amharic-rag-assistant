@@ -286,6 +286,8 @@ tests/test_security.py ...... PASSED [100%]
 ============================= 29 passed in 0.65s =============================
 ```
 
+> **Note:** The full test suite (29/29) requires `flashrank` installed per `requirements.txt`. Without it, `test_reranker_execution_and_top_k` fails locally due to the re-ranker's fallback behavior (showing 28/29 passed); CI installs the full dependency set so all 29 pass.
+
 ### 5. Launch the Web Application
 
 ```bash
