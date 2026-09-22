@@ -113,7 +113,7 @@ A factual UNAIDS question is answered with citations, followed by a related ques
 | **Vector Database** | ChromaDB 1.5.9 | Local persistent cosine distance vector store |
 | **Embeddings** | `intfloat/multilingual-e5-small` | 384-dimensional dense semantic vector representations |
 | **Lexical Engine** | Custom In-Memory BM25 | Pure Python BM25 ranking ($k_1=1.5, b=0.75$) with Ethiopic regex tokenization |
-| **LLM Inference** | Google Gemini / Groq | `gemini-2.5-flash` / `openai/gpt-oss-120b` for rewriting and answer generation |
+| **LLM Inference** | Google Gemini / Groq | `gemini-3.6-flash` / `openai/gpt-oss-120b` for rewriting and answer generation |
 | **Quality & CI** | Pytest 9.1.1 + GitHub Actions | Automated 29-test verification suite covering chunking, citations, security, rate limiting, and hybrid retrieval |
 | **Deployment** | Docker (`python:3.11-slim`) | Multi-stage containerization with pre-baked dependencies |
 
