@@ -346,6 +346,19 @@ Navigate to `http://localhost:8501`.
 
 ---
 
+## Known Limitations
+
+This system demonstrates a rigorous, honestly-evaluated RAG pipeline for Amharic — not a production deployment serving real users at scale. Specific limitations:
+
+- **Corpus size:** the knowledge base covers 286 Wikipedia articles/paragraphs — sufficient to demonstrate retrieval and generation quality, but far short of the breadth a real-world Amharic QA system would need.
+- **Retrieval ceiling:** a top-k sweep on the 329-question holdout set found that even a perfect re-ranker at top-10 tops out at 89.36% Hit@10 — 35 of 89 failures have the gold document missing from the top-10 entirely, meaning some questions are not answerable by this retrieval architecture regardless of ranking improvements.
+- **Re-ranking disabled:** a cross-encoder re-ranking stage is implemented and tested but disabled in production — an English-only model failed on Amharic tokenization entirely, and a multilingual alternative that worked linguistically was too computationally expensive on CPU at this scale.
+- **Generation eval sample size:** the generation-quality evaluation (Faithfulness/Relevance/Correctness) covers 15 of 329 holdout questions, constrained by free-tier judge-model quota — a real signal of quality, not a statistically comprehensive benchmark.
+- **Security guardrails are pattern-based:** prompt-injection and jailbreak detection use regex pattern matching in English and Amharic, which catches known attack phrasings but is not resistant to novel adversarial phrasing an ML-based classifier might catch.
+- **Dataset scope:** built and evaluated against Amharic Wikipedia and the AmQA benchmark — a controlled academic dataset, not live user queries or a documented user population.
+
+---
+
 ## 8. Author & License
 
 - **Author:** [Isaak Alemu](https://github.com/IsaakAlemu)  
