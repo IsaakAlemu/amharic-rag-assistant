@@ -86,6 +86,24 @@ flowchart TD
 
 ---
 
+## Demo
+
+The interactive Streamlit application provides live token streaming, inline citation tags mapped to retrieved passages, and multi-turn conversational context resolution:
+
+### Single-Turn Grounded QA & Source Attribution
+
+A factual query about UN peacekeeping leadership, answered with an inline citation and retrieved source passages:
+
+![Single-Turn Grounded QA](docs/images/demo-main.png)
+
+### Multi-Turn Conversation & Grounded Refusal
+
+A factual UNAIDS question is answered with citations, followed by a related question the retrieved documents don't actually cover — the system correctly refuses to speculate rather than hallucinating an answer:
+
+![Multi-Turn Conversation & Grounded Refusal](docs/images/demo-conversation.png)
+
+---
+
 ## 2. Technology Stack
 
 | Layer | Technology | Specification & Purpose |
