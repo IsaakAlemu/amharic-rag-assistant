@@ -122,6 +122,22 @@ Benchmarking was conducted on the holdout evaluation split comprising **329 unse
    - *BM25 Lexical:* Ranked at **#1** (exact keyword matching).
    - *Hybrid RRF:* Ranked at **#1** (exact match + semantic confirmation).
 
+### 3.3 Generation Quality Evaluation
+
+Beyond retrieval accuracy, answer *generation* quality was evaluated using an LLM-as-judge methodology (Gemini) scoring three dimensions — Faithfulness (grounded in retrieved context, no hallucination), Relevance (addresses the question asked), and Correctness (matches ground truth) — each on a 1-5 scale.
+
+**Judge validity check:** before trusting these scores, the judge was tested against deliberately incorrect answers. A fully fabricated answer (wrong country, wrong capital) scored 1/1/1. A plausible but factually wrong answer (correct topic, wrong number) scored Relevance 5 / Faithfulness 1 / Correctness 1 — confirming the judge discriminates on each dimension independently rather than defaulting to high scores.
+
+| Metric | Score (15/15 questions) |
+|---|:---:|
+| Faithfulness | 5.0 / 5.0 |
+| Relevance | 5.0 / 5.0 |
+| Correctness | 5.0 / 5.0 |
+
+All 15 evaluated questions — spanning factual lookups (dates, monetary figures, named officials), acronym resolution (UNAIDS), and multi-point synthesis (health effects of snoring, requiring the system to combine two separate facts from context) — received perfect scores across all three dimensions, with every answer correctly citing its source passage.
+
+**Scope note:** this evaluation covers 15 of 329 holdout questions — a small, quota-constrained sample, not full-scale generation benchmarking. It demonstrates end-to-end generation quality on this subset rather than a statistically comprehensive claim across the full holdout set.
+
 ---
 
 ## 4. Safety & Reliability Guardrails
