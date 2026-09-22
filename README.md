@@ -103,7 +103,7 @@ flowchart TD
 
 ## 3. Empirical Evaluation & Retrieval Benchmarks
 
-Benchmarking was conducted on the holdout evaluation split comprising **329 unseen AmQA test questions** across ~286 passage-level documents (`split_seed=42`, `holdout_ratio=0.2`).
+Benchmarking was conducted on the holdout evaluation split comprising **329 unseen questions from the AmQA [(Abedissa et al., 2023)](https://arxiv.org/abs/2303.03290) benchmark** ([github.com/semantic-systems/amharic-qa](https://github.com/semantic-systems/amharic-qa)) across ~286 passage-level documents (`split_seed=42`, `holdout_ratio=0.2`).
 
 ### 3.1 Retrieval Pipeline Progression
 
