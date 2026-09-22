@@ -187,17 +187,27 @@ def generate_answer_stream(
     client_module = type(client).__module__.lower()
     if "genai" in client_module or "genai" in client_type:
         from google.genai import types
+        import time
 
-        response_stream = client.models.generate_content_stream(
-            model=model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=temperature,
-            ),
-        )
-        for chunk in response_stream:
-            if chunk.text:
-                yield chunk.text
+        for attempt in range(3):
+            try:
+                response_stream = client.models.generate_content_stream(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=temperature,
+                    ),
+                )
+                for chunk in response_stream:
+                    if chunk.text:
+                        yield chunk.text
+                return
+            except Exception as exc:
+                msg = str(exc).lower()
+                if attempt < 2 and ("503" in msg or "unavailable" in msg or "resource_exhausted" in msg or "429" in msg):
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                raise
     elif "groq" in client_module or "groq" in client_type or hasattr(client, "chat"):
         stream = client.chat.completions.create(
             model=model,
