@@ -13,6 +13,8 @@ Amharic (አማርኛ) is the second most spoken Semitic language globally with 
 3. **Exact Acronym & Named Entity Failure:** Dense vector search frequently maps domain-specific Ethiopian acronyms (e.g., `የተ.መ.ድ` for UN, `ዩኤን ኤድስ` for UNAIDS, `ኢዜአ` for ENA) to vague generic regions in vector space, failing to achieve top-rank precision for factual lookups.
 4. **Adversarial & Delimiter Vulnerabilities:** Multilingual LLMs often misinterpret mixed-language prompt-injection attempts or cross-lingual jailbreak phrasing unless protected by rigorous character sanitization, delimiter isolation, and bilingual boundary defense classifiers.
 
+Beyond the specific dataset, this project demonstrates a transferable pattern: building retrieval and generation systems for languages and scripts that standard multilingual NLP tooling underserves. The techniques here — Ethiopic-aware tokenization, hybrid dense/lexical fusion to compensate for embedding fragmentation, adversarial guardrails in a low-resource language — generalize to other underrepresented languages facing the same architectural gaps. This is a technical foundation, rigorously benchmarked and honestly evaluated end-to-end (see [Known Limitations](#known-limitations)), rather than a deployed product serving a defined user base today.
+
 To overcome these limitations, this system implements a **Two-Stage Hybrid Retrieval Pipeline** combining custom Ethiopic lexical BM25 tokenization, dense cosine embeddings, Reciprocal Rank Fusion (RRF), and optional cross-encoder re-ranking (disabled by default in production), wrapped in an end-to-end multi-turn conversational workflow with strict factual grounding.
 
 <div align="center">
